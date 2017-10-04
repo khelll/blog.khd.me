@@ -1,0 +1,128 @@
+---
+layout: single
+title: Ruby symbols
+date: 2009-01-06 13:22:55.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- Ruby
+tags:
+- Ruby
+- symbols
+
+---
+<p>I keep seeing many programmers from different backgrounds are unable to get what Ruby symbols are, and though I do know that there are many <a href="http://www.google.com/search?hl=en&q=ruby+symbols+&btnG=Google+Search&aq=f&oq=">great posts</a> regarding this topic, and actually my intent is not to increase them by one :) , but I feel I have to clear few points regarding them.<br />
+So I'm trying to answer 2 important question here: <strong>What are Ruby symbols?</strong> and <strong>When to use them?</strong></p>
+<h2>What are Ruby symbols?</h2>
+<p>Well, according to the <a href="http://www.ruby-doc.org/core/classes/Symbol.html">API documentation</a>:</p>
+<blockquote><p>Symbol objects represent names and some strings inside the Ruby interpreter. They are generated using the :name and :"string" literals syntax, and by the various to_sym methods. The same Symbol object will be created for a given name or string for the duration of a program's execution, regardless of the context or meaning of that name. Thus if Fred is a constant in one context, a method in another, and a class in a third, the Symbol :Fred will be the same object in all three contexts. </p></blockquote>
+<p>Let's walk over this long quote, point by point, but let's first list all the points it has:</p>
+<p>1-Symbol objects represent names and some strings inside the Ruby interpreter.<br />
+2-They are generated using the :name and :"string" literals syntax, and by the various to_sym methods.<br />
+3-The same Symbol object will be created for a given name or string for the duration of a program's execution, regardless of the context or meaning of that name. Thus if Fred is a constant in one context, a method in another, and a class in a third, the Symbol :Fred will be the same object in all three contexts.</p>
+<p>I'll start with the 2nd point then get back to the rest, just before I do, please fire your irb:</p>
+<p>We can create a symbol with various ways:</p>
+{% highlight ruby  %}
+# Normal way, just prefix a token with ':'
+greeting = :hi #=> :hi
+
+# Multi token symbol 
+another_greeting = :"hello man" #=> :"hello man"
+
+# Use the .to_sym if it's defined for your object class
+# For example .to_sym is defind in String class
+a_third_greeing = "howdy".to_sym #=> :howdy
+
+# Using %s[ ]
+%s[a 4th one] #=> :"a 4th one"
+
+# We can also cast a symbol to string with to_s
+:ds.to_s #=> "ds"
+{% endhighlight %}
+<p>That was the easy part, now let's get back to the first point, it says: "Symbol objects represent names and some strings inside the Ruby interpreter." , what does that mean exactly?</p>
+<p>In computer science there is a term called: <a href="http://en.wikipedia.org/wiki/Symbol_table">Symbol table</a>, where the compiler or the interpreter of the language stores all the identifiers of a source code in that table to reference them -specifically to be referenced by the <a href="http://en.wikipedia.org/wiki/Abstract_syntax_tree">Abstract Syntax Tree</a>(AST).<br />
+Actually the data structure that represents the symbol table varies from one interpreter to another, but what we care for is Ruby, in Ruby, the symbol table stores various things like method names and symbol names(we will check why Ruby does so later on), <strong>and the value of a symbol is a unique integer value, that can't be changed</strong>.</p>
+{% highlight ruby  %}
+# Not working on ruby 1.9
+:ds.to_i #=> 28777
+
+# Notice the value of the symbol is not its object id
+:ds.object_id #=> 287778
+
+# Symbol values can't be changed
+:ds = 3 #SyntaxError: compile error
+{% endhighlight %}
+<p>Now let's take more in depth example, let's explore the symbol table:</p>
+{% highlight ruby  %}
+# Let's check what symbols names start with 'hello'
+Symbol.all_symbols.collect{|x| x.to_s}.grep /^hello.*$/ #=> ["hello"]
+
+# Now let's define a new dummy class and add  a new method called 'hello_world'
+class Dummy; def hello_world; end ; end #=> nil
+
+# Check again.
+Symbol.all_symbols.collect{|x| x.to_s}.grep /^hello.*$/ #=> ["hello", "hello_world"]
+{% endhighlight %}
+<p>As you can see, when we defined the class 'Dummy' and more specifically when we defined the 'hello_world' method, it was added to the symbol table.<br />
+Let's take another example:</p>
+{% highlight ruby  %}
+Symbol.all_symbols.size #=> 3329
+:koko #=> :koko
+Symbol.all_symbols.size #=> 3330
+{% endhighlight %}
+<p>Now let's take the last point : "The same Symbol object will be created for a given name or string for the duration of a program's execution, regardless of the context or meaning of that name. Thus if Fred is a constant in one context, a method in another, and a class in a third, the Symbol :Fred will be the same object in all three contexts." ,so: Fred is :Fred wherever you see it and no matter what the context it comes in:</p>
+{% highlight ruby  %}
+k = :Fred  #=> :Fred                  
+module M; Cons = :Fred; end #=> :Fred
+k.object_id #=> 287498
+M::Cons.object_id #=> 287498
+{% endhighlight %}
+<h2>When to use Ruby symbols?</h2>
+<p>Well, this might be the one million dollars question, and that's initially why i wrote this post for. You also might be wondering, why have <a href="http://en.wikipedia.org/wiki/Yukihiro_Matsumoto">Matz</a> chosen to give us this low level introspection in the language by allowing me to work with the interpreter stuff?</p>
+<p>The answer is divided in 2 parts:</p>
+<p>1- Efficiency. 2-  Metaprogramming(reflection).</p>
+<h3> Efficiency </h3>
+<p>We will talk about efficiency at first place,so let's check this snippet of code:</p>
+{% highlight ruby  %}
+# Some programmer would do this
+if name == "khaled alhabache"
+{% endhighlight %}
+<p>The snippet of code above is really costive, in terms of memory and efficiency:<br />
+1-Comparing 2 strings is costive, specially when the 2 strings are long.<br />
+2-Reserving "changeable" amount of memory, 16 bytes in our case to instantiate "Khaled alhabache".<br />
+3-The GC would have to clean this "Khaled alhabache" later on.</p>
+<p>What about doing :</p>
+{% highlight ruby  %}
+# This is what i call it "a cleaner approach"
+if name.to_sym == :"khaled alhabache"
+{% endhighlight %}
+<p>Now what we did is:<br />
+1-Comparing 2 integers(the value of a symbol is integer) which is cheaper.<br />
+2-Reserving memory 4 bytes for :"Khaled alhabache" symbol, cause a symbol is an integer finally.<br />
+3-The GC would not have to clean this :"Khaled alhabache" symbol, cause symbols don't get deleted till program exits.</p>
+<p><strong>So use symbols as much as you can, and avoid using stings as much as you can, but take extra care of defining thousands of symbols, cause as mentioned: symbols don't get deleted till program exits, and thus they stick in memory.</strong></p>
+<h3>Metaprogramming and symbols</h3>
+<p>Well working with <a href="/2008/12/31/ruby-and-metaprogramming">metaprogramming</a> in Ruby is really nice, you can do something like:</p>
+{% highlight ruby  %}
+to = [:to_s , :to_f , :to_r] #=> [:to_s, :to_f, :to_r]
+
+# Notice the use of symbols with reflection -Ex with 'send' method 
+to.each{|method| puts "#{method} => #{5.send method}"}
+# to_s => 5
+# to_f => 5.0
+# to_r => 5
+ {% endhighlight %}
+<p>Without symbols, you would never be able to use reflection techniques like 'send', otherwise how can you invoke methods dynamically?, also without symbols, you would never be able to use introspection techniques like 'respond_to?'</p>
+{% highlight ruby  %}
+5.respond_to? :slice #=> false
+5.respond_to? :to_f #=> true
+{% endhighlight %}
+<p><strong>Update, a respond to readers comments</strong>:<br />
+It's true that you can do something like :</p>
+{% highlight ruby  %}
+5.respond_to? "to_f" #=> true
+{% endhighlight %}
+<p>But what's happening is that Ruby is casting it for you, but why to reserve extra memory to send it as a string?</p>
+<p>For guys who are objecting on memory efficiency with symbols, I strongly recommend reading <a href="http://glu.ttono.us/articles/2005/08/19/understanding-ruby-symbols">this</a> post also.</p>
+<p>I hope I could help you understand what Ruby symbols are and why they are used for, specially of you who are coming from other programing backgrounds.</p>

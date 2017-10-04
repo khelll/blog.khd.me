@@ -1,0 +1,121 @@
+---
+layout: single
+title: Ruby and Functional Programming
+date: 2009-05-24 04:28:30.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- Functional Programming
+- Ruby
+tags:
+- Functional Programming
+- Ruby
+
+---
+<p>Ruby is known to support the functional paradigm. This article is going to walk you through the Functional Programming <a href="http://en.wikipedia.org/wiki/Functional_programming">page</a> on WikiPedia, to revise the general concepts of functional programming and to explain how Ruby supports them.<br />
+According to wikipedia, a functional programming can be described as follows:</p>
+<blockquote><p>In computer science, functional programming is a programming paradigm that treats computation as the evaluation of mathematical functions and avoids state and mutable data. It emphasizes the application of functions, in contrast to the imperative programming style, which emphasizes changes in state. Functional programming has its roots in the lambda calculus, a formal system developed in the 1930s to investigate function definition, function application, and recursion. Many functional programming languages can be viewed as embellishments to the lambda calculus.</p></blockquote>
+<p>That's a clear definition, however and if it's not, the following walk through some <strong>concepts</strong> of functional programming should result in a better understanding:  </p>
+<h2>Pure functions</h2>
+<blockquote><p>In practice, the difference between a mathematical function and the notion of a "function" used in imperative programming is that imperative functions can have side effects, changing the value of already calculated computations. Because of this they lack referential transparency, i.e. the same language expression can result in different values at different times depending on the state of the executing program. Conversely, in functional code, the output value of a function depends only on the arguments that are input to the function, so calling a function f twice with the same value for an argument x will produce the same result f(x) both times. Eliminating side-effects can make it much easier to understand and predict the behavior of a program, which is one of the key motivations for the development of functional programming.</p></blockquote>
+<p>Pure functions support the mathematical definition of a function:</p>
+<p><em> y = f(x)</em></p>
+<p>Which means:<br />
+1- A function should return the same exact value given the same exact input.<br />
+2- A function does one thing exactly(has one clear mission), it has no side effects like changing some other value or write to stream or any other mission rather than its assigned one.</p>
+<p>In fact Ruby doesn't force you to write pure functions, but certainly it helps you to do so. Actually exercising yourself to write in pure functional style when possible helps you really in many ways:<br />
+1- It makes your code clean, readable and self-documenting.<br />
+2- It makes your code more "thread safe"<br />
+3- It helps you more when it comes to TDD.</p>
+<p>Let's have a look on how Ruby helps you do Pure functional code:</p>
+<h3>The <code>!</code> symbol</h3>
+<p>Most of Ruby programmers know the <code>!</code> symbol that comes at the end of method names like <code>gsub!</code>, <code>merge!</code> and many other methods. The <code>!</code> symbol means: "Use it cautiously". However If you focus more, you will notice that <strong>most of time</strong>, the <code>!</code> symbol means: "This is a method that has a side effect; it alters the object which is invoked on!". </p>
+{% highlight ruby  %}
+s = "hello" #=> "hello"
+up_s = s.upcase #=> "HELLO"
+puts s.upcase! #=> "HELLO"
+puts s #=> "HELLO"
+{% endhighlight %}
+<p>As you can see, the <code>upcase!</code> method is not a pure functional method cause it has a side effect, it changes the string itself. On the other hand, the <code>upcase</code> method is a pure functional one as it returns the corresponding value with no other side effects.</p>
+<p>On all hows, it's highly recommended that you stick to this convention of method naming when you code in Ruby.</p>
+<h3>Expressions</h3>
+<p><strong>Everything is evaluated as an expression in Ruby</strong>: literals, method calls, variables... even a control structure has a value. For example you can do this in Ruby:</p>
+{% highlight ruby  %}
+if num == "one" then val = 1
+elsif num == "two" then val = 2
+else then val = 3
+end
+{% endhighlight %}
+<p>But that is a weak use of Ruby's power, instead you'd better do:</p>
+{% highlight ruby  %}
+val = if num == "one" then   1
+elsif num == "two" then  2
+else 3
+end
+{% endhighlight %}
+<h3>Return value</h3>
+<p>Ruby returns the last expression value as the return value of the method invocation, so you don't need an explicit <code>return</code> statement.</p>
+{% highlight ruby  %}
+def greeting(name)
+  "Hello #{name}!"
+end
+puts greeting('khelll') #=> "Hello khelll!"
+{% endhighlight %}
+<p>Together, the auto returned value and evaluating code as expressions are indeed a big support for pure functional code as finally they both serve the fact of having a value out of your method.</p>
+<h2>Higher-order functions</h2>
+<p>Functions are higher-order when they can take other functions as arguments, and return them as results. This is done in Ruby using lambda and block logic. If you don't know how to use blocks, please do yourself a favor and visit this <a href="http://www.robertsosinski.com/2008/12/21/understanding-ruby-blocks-procs-and-lambdas/">comprehensive article</a> by Robert Sosinski.</p>
+<p>Blocks in Ruby can help you do very nice things, one of them is ability to add control structure like syntax to your code. Check the following example, where a loop control structure is being defined:</p>
+{% highlight ruby  %}
+# a trivial example that adds a loop control structure
+# it takes a range and yields the passed block.
+def loop(x,&b)
+  for i in x do
+    b.call(i)
+  end
+end
+
+# use the above defined method
+loop(1..10) do |x|
+  puts x
+end
+{% endhighlight %}
+<p><a href="/2008/12/30/ruby-and-internal-dsls">Internal DSLs</a> is also one of the nice things that you can achieve with block syntax in Ruby.</p>
+<h3>Currying and Partial Functions</h3>
+<p>Higher-order functions enable <strong>Currying</strong>, which the ability to take a function that accepts n parameters and turns it into a composition of n functions each of them take 1 parameter. A direct use of currying is the <strong>Partial Functions</strong> where if you have a function that accepts n parameters then you can generate from it one of more functions with some parameter values already filled in. Ruby 1.9 comes with support for this concept. check the following example:</p>
+{% highlight ruby  %}
+# defining a proc that sums 2 numbers
+plus = lambda {|a,b| a + b} #=> #<Proc:0x8e236ac@(irb):1 (lambda)> 
+
+# notice the new call to procs in ruby 1.9 using the period symbol
+plus.(3,5) #=> 8 
+
+# i want a modified version of the above proc that fills the first parameter with the value '1'
+# so i generate the currying then i use a partial function by supplying the first parameter
+# with value '1'
+plus_one = plus.curry.(1) #=> #<proc:0x8dde908>
+
+# I can use the new proc as normal
+plus_one.(5) #=> 6
+</proc:0x8dde908>{% endhighlight %}
+<p>For extended example about currying, check <a href="/2009/05/24/ruby-currying">Ruby Currying</a> blog post by me ;) . </p>
+<h2>Type systems and pattern matching</h2>
+<p>Pattern matching allows complicated control decisions based on data structure to be expressed in a concise manner. in simpler words, it's a data structure based matching. Pure functional languages should support this concept, however and afaik this is still not supported in Ruby, but there are several trials to add this concept. check this <a href="http://etorreborre.blogspot.com/2007/04/pattern-matching-with-ruby.html">blog post</a> by Eric Torreborre.</p>
+<h2>Strict versus lazy evaluation</h2>
+<p>Strict evaluation always fully evaluates function arguments before invoking the function. Lazy evaluation does not evaluate function arguments unless their values are required to be evaluated. One use of Lazy evaluation is the performance increases due to avoiding unnecessary calculations.</p>
+<p>However as the following example shows, Ruby use Strict evaluation strategy:</p>
+{% highlight ruby  %}
+print length([2+1, 3*2, 1/0, 5-4])
+=>ZeroDivisionError: divided by 0
+{% endhighlight %}
+<p>The third parameter of the passed array contains a division by zero operation and as Ruby is doing strict evaluation, the above snippet of code will raise an exception.</p>
+<h2>Recursion</h2>
+<p>Iteration (looping) in functional languages is usually accomplished via recursion. Ruby doesn't force you to recursion but it allows you to do so. However following recursion style has it's own tax: Performance.<br />
+Ruby 1.9 comes with some "tail call optimizations", more <a href="http://www.reddit.com/r/ruby/comments/8lz33/ruby_19_has_tail_call_optimization">here</a>.</p>
+<h2>Conclusion</h2>
+<p>1- As you can tell, Ruby helps you write in functional style but it doesn't force you to it.<br />
+2- Writing in functional style enhances your code and makes it more self documented. Actually it will make it more thread-safe also.<br />
+3- The main support for FB in ruby comes from the use of blocks and lambdas, also from the fact that everything is evaluated as an expression.<br />
+4- Ruby still lack an important aspect of FP: Pattern Matching and Lazy Evaluation.<br />
+5- There should be more work on tail recursion optimization, to encourage developers to use recursion.<br />
+6- Any other thoughts?</p>

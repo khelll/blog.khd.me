@@ -1,0 +1,116 @@
+---
+layout: single
+title: Ruby and Internal DSLs
+date: 2008-12-30 10:51:42.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- Ruby
+tags:
+- DSL
+- Internal DSL
+- Ruby
+
+---
+<p><a href="http://www.martinfowler.com/bliki/DomainSpecificLanguage.html">A Domain-specific language(DSL)</a> is a computer language that's targeted to a particular kind of problem, rather than a general purpose language that's aimed at any kind of software problem. Domain specific languages have been talked about, and used for almost as long as computing has been done. Regular expressions and CSS are 2 examples of DSLs.</p>
+<p>Any software language needs a parser and an interpreter(or compiler or a mix), but in DSLs, we have 2 types: external ones which need parsers and interpreters, and internal ones which rely on the hosting language power to give the feel of a particular language, and thus they don't require their own parsers.</p>
+<p>Ruby is a very convenient language for writing internal DSLs, it has several powerful techniques that enables you easily to write internal DSLs, and many famous products that we use are nothing but internal DSLs: <a href="http://haml.hamptoncatlin.com/">Haml</a>, <a href="http://builder.rubyforge.org/">Builder</a> and <a href="http://rake.rubyforge.org/">Rake </a>.</p>
+<p>Lemme show you a very simple example on how an internal DSL might look like using ruby:</p>
+{% highlight bash  %}RobotTasksExecuter.start do
+  stack :boxes => 5 do
+    fetch do
+      rotate :rectangle => 60
+      pick :speed => 'slow',:height => 15
+      rotate :rectangle => -60
+      free :speed => 'slow'
+    end
+    package do
+      lock
+      seal
+    end
+  end
+end{% endhighlight %}
+<p>As you can tell, this is a very basic internal DSL, written to describe basic tasks for a robot.<br />
+There is one task at the moment called 'stack' where the robot should do 2 things: fetch the box, and then package it.<br />
+Several ruby techniques are used to bring this basic DSL:<br />
+1- Blocks: everything between 'do .. end' keywords.<br />
+2- Parenthesesless methods: like 'lock' and 'seal'.<br />
+3- Passing hash values as method arguments without the need of using curly braces: like doing 'pick :speed => 'slow',:height => 15'.</p>
+<p>Now all i need is a simple functionality to execute this simple internal DSL:</p>
+{% highlight ruby  %}# A dummy task class
+class RobotTask
+  # A dummy run task
+  # type of task, a margin to indent the output, and some other attributes are passed
+  def run(type,margin,attrs={})
+    output = "#{margin} Running task '#{type}'"
+    output+=", with attributes:" if !attrs.empty?
+    puts output
+    attrs.each{|key,value| puts "#{margin} --#{key} = #{value}"}
+  end
+end
+
+# A simple tasks executer 
+# This code is very basic and could be far optimized
+class RobotTasksExecuter
+  def initialize
+    puts "   **** Robot is working now ****"
+    # This is used to indent the output
+    @margin = ""
+  end
+
+  # Start the executer work
+  def self.start(&block)
+    # Instantiate an executer object and evaluate the DSL code block
+    new.instance_eval(&block)
+  end
+
+  #  All undefined methods will call method_missing
+  #  Let's use 'execute' as an alias for method_missing
+  alias method_missing execute
+
+  # All undefined methods will call this method, because of the aliasing taking place over.
+  def execute(type,attrs={})
+    @margin += "  "
+    RobotTask.new.run(type,@margin,attrs)
+    yield if block_given?
+    @margin = @margin[0,@margin.length-2]
+  end
+
+end
+
+RobotTasksExecuter.start do
+  stack :boxes => 5 do
+    fetch do
+      rotate :rectangle => 60
+      pick :speed => 'slow',:height => 15
+      rotate :rectangle => -60
+      free :speed => 'slow'
+    end
+    package do
+      lock
+      seal
+    end
+  end
+end{% endhighlight %}
+<p>And the output:</p>
+{% highlight bash  %}   **** Robot is working now ****
+   Running task 'stack', with attributes:
+   --boxes = 5
+     Running task 'fetch'
+       Running task 'rotate', with attributes:
+       --rectangle = 60
+       Running task 'pick', with attributes:
+       --speed = slow
+       --height = 15
+       Running task 'rotate', with attributes:
+       --rectangle = -60
+       Running task 'free', with attributes:
+       --speed = slow
+     Running task 'package'
+       Running task 'lock'
+       Running task 'seal'{% endhighlight %}
+<p>In addition to the 3 points we mentioned earlier, another 2 ones should be added, as they are the heart of the above executer:</p>
+<p>4- Reflection techniques: the one we used inside the class method 'start', exactly this line "new.instance_eval(&block)".<br />
+5- method_missing: all undefined methods are received by 'execute', the alias of method_missing.</p>
+<p>As i mentioned earlier, this is a very basic internal DSL, if you are looking for an advanced article covering a more advanced one, then don't hesitate to check this <a href="http://www.codecommit.com/blog/ruby/xmlbuilder-a-ruby-dsl-case-study"> rich one</a> by Daniel Spiewak.</p>

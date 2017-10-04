@@ -1,0 +1,38 @@
+---
+layout: single
+title: Installing CoffeeScript on Ubuntu
+date: 2011-05-15 07:15:30.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- CoffeeScript
+tags:
+- CoffeScript
+- Javascript
+
+---
+<p>Unfortunately the current <a href="http://coffeescript.org">CoffeeScript</a> package is for an old version. Thus, some manual work is needed to get the latest version working for you on Ubuntu. Here are the steps, we need to install <a href="http://git-scm.com/">Git</a>, <a href="http://nodejs.org/">node.js</a>, <a href="http://npmjs.org/">npm</a> and finally CoffeeScript:</p>
+{% highlight coffeescript  %}
+$ sudo apt-get update
+# Install needed packages
+$ sudo apt-get install git-core curl build-essential openssl libssl-dev
+# Install node.js
+$ git clone https://github.com/joyent/node.git && cd node
+$ ./configure
+$ make
+$ sudo make install
+$ cd
+# Install npm
+$ curl http://npmjs.org/install.sh | sudo sh
+#Install CoffeeScript
+$ sudo  npm install -g coffee-script
+{% endhighlight %}
+<p>Now give it a shot:</p>
+{% highlight coffeescript  %}
+$ coffee -i
+coffee> square = (x) -> x * x
+[Function]
+coffee> square 5
+25
+{% endhighlight %}

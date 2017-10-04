@@ -1,0 +1,256 @@
+---
+layout: single
+title: Delegation in Ruby
+date: 2009-04-26 18:25:57.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- Grails
+- Ruby
+tags:
+- delegation
+- rails
+- Ruby
+
+---
+<p><em>This is my first article in <a href="http://www.railsmagazine.com/">http://railsmagazine.com</a>, it was published in <a href="http://railsmagazine.com/issues/1">issue 1</a>, so basically I'm just republishing it here again.</em></p>
+<p>"Separate changeable parts from others that remain the same" and "composition is preferred to inheritance" are 2 common design principles when you start designing in OOP world. However and while the first seems to be logical, a one might wonder why it's preferable to use composition over inheritance, and that's a logical question, lets answer it via an example:</p>
+<p>Let's suppose that we have a Robot that has a heat sensor, a one would write a very simple UML:</p>
+<p><img src="{{ site.baseurl }}/assets/robot.png" /></p>
+<p>This design has several drawbacks:</p>
+<p>1.There is a strong probability to have another type of robots that don't have heat sensors(breaks the first design principle: separate changeable code from static one).<br />
+2.Whenever I want to modify anything related to the heat sensor, I have to change the robot class(breaks the first design principle).<br />
+3.Exposure of heat sensor methods to in Robot class.</p>
+<p>Let's enhance this class a bit:</p>
+<p><img src="{{ site.baseurl }}/assets/volcano_robot.png" /></p>
+<p>Well, now this is an inheritance based design and it solves the first problem, but it's still incapable to solve the other 2 problems related to the heat sensor. Let's do another enhancement:</p>
+<p><img src="{{ site.baseurl }}/assets/heat_sensor.png" /></p>
+<p>Now this is a typical design, based on composition rather than inheritance, where we could solve the above 3 problems, and moreover we gained a new thing:  we can now abstract the HeatSensor for future uses.</p>
+<h2>Now what's delegation? </h2>
+<p>Delegation is the process of delegating functionality to the contained parts.<br />
+If you look carefully at the previous figure, you will notice that the VolcanoRobot is still having the 3 methods that are related to the sensor, well those are a wrapper methods, they do nothing but to call the sensor corresponding ones, and that's exactly what delegation is, just delegate functionality to the contained parts(delegates).<br />
+Delegation comes along with composition to provide a flexible neat solutions like the one we had above, and also it serves the principle "separate changeable code from static one" ,but that also comes with a tax: a need of wrapper methods, and extra time needed in processing because of the call of these wrapper methods.</p>
+<h2>Ruby and delegation</h2>
+<p>Now let's have a code example:<br />
+We have a multi purpose Robot that has an arm and a heat sensor, the robot does several jobs, like packaging boxes, stacking them and measuring the heat.<br />
+we will use composition and delegation as follows:</p>
+{% highlight ruby  %}
+class Robot
+  def initialize
+    @heat_sensor = HeatSensor.new
+    @arm = RobotArm.new
+  end
+
+  def measure_heat(scale="c")
+    @heat_sensor.measure(scale)
+  end
+
+  def stack(boxes_number=1)
+    @arm.stack(boxes_number)
+  end
+
+  def package
+    @arm.package
+  end
+end
+
+class HeatSensor
+  #Celsius or Fahrenheit scale
+  def measure(scale="c")
+    t = rand(100)
+    t = scale=="c" ? t : t * (9/5)
+    puts "Heat is #{t}° #{scale.upcase}"
+  end
+end
+
+class RobotArm
+  def stack(boxes_number=1)
+    puts "Stacking #{boxes_number} box(es)"
+  end
+
+  def package
+    puts "Packaging"
+  end
+end
+
+
+robo = Robot.new #=>#<Robot:0xb75131e8 @arm=#<robotarm:0xb75131ac>, @heat_sensor=#<heatsensor:0xb75131c0>>
+robo.stack 2 #=>Stacking 2 box(es)
+robo.package #=>Packaging
+robo.measure_heat #=> Heat is 59° C
+</heatsensor:0xb75131c0></robotarm:0xb75131ac>{% endhighlight %}
+<p>As you can see, i have 3 wrapper methods(stack,package and measure_heat) in Robot class that are doing nothing but to call the contained objects corresponding methods.<br />
+This is really a nasty thing, specially when there are lots of contained objects.<br />
+However there are 2 libs that comes to the rescue to in ruby, Forwardable and Delegate. Let's check them one by one.</p>
+<h2>Forwardable lib</h2>
+<p><a href="http://www.ruby-doc.org/stdlib/libdoc/forwardable/rdoc/index.html">Forwardable lib</a> is library that supports delegation, it has 2 modules Forwardable and SingleForwardable: </p>
+<h3>Forwardable module</h3>
+<p>The <a href="http://www.ruby-doc.org/stdlib/libdoc/forwardable/rdoc/classes/Forwardable.html">Forwardable</a> module provides delegation of specified methods to a designated object, using the methods <a href="http://www.ruby-doc.org/stdlib/libdoc/forwardable/rdoc/classes/Forwardable.html#M000736">def_delegator</a> and <a href="http://www.ruby-doc.org/stdlib/libdoc/forwardable/rdoc/classes/Forwardable.html#M000735">def_delegators</a>. </p>
+<p>def_delegator(obj, method, alias = method) : Defines a method method which delegates to obj. If alias is provided, it is used as the name for the delegate method.</p>
+<p>def_delegators(obj, *methods): Shortcut for defining multiple delegator methods, but with no provision for using a different name.</p>
+<p>Let's refactor our robot example to make it Forwardable module:</p>
+{% highlight ruby  %}
+require 'forwardable'
+class Robot
+  # Extending provides class methods
+  extend Forwardable
+  # Use of  def_delegators
+  def_delegators :@arm,:package,:stack
+  # Use of  def_delegator
+  def_delegator :@heat_sensor, :measure ,:measure_heat
+  def initialize
+    @heat_sensor = HeatSensor.new
+    @arm = RobotArm.new
+  end
+end
+
+class HeatSensor
+  #Celsius or Fahrenheit scale
+  def measure(scale="c")
+    t = rand(100)
+    t = scale=="c" ? t : t * (9/5)
+    puts "Heat is #{t}° #{scale.upcase}"
+  end
+end
+
+class RobotArm
+  def stack(boxes_number=1)
+    puts "Stacking #{boxes_number} box(es)"
+  end
+
+  def package
+    puts "Packaging"
+  end
+end
+{% endhighlight %}
+<p>Well, that's a neater solution as you can see.</p>
+<h3>
+SingleForwardable module</h3>
+<p>The <a href="http://www.ruby-doc.org/stdlib/libdoc/forwardable/rdoc/classes/SingleForwardable.html">SingleForwardable</a> module provides delegation of specified methods to a designated object, using the methods <a href="http://www.ruby-doc.org/stdlib/libdoc/forwardable/rdoc/classes/SingleForwardable.html#M000732>def_delegator and <a href="http://www.ruby-doc.org/stdlib/libdoc/forwardable/rdoc/classes/SingleForwardable.html#M000731">def_delegators</a>. This module is similar to Forwardable, but it works on objects themselves, instead of their defining classes. </p>
+{% highlight ruby  %}
+require "forwardable"
+require "date"
+date = Date.today #=> #<Date: 4909665/2,0,2299161>
+# Prepare object for delegation
+date.extend SingleForwardable #=> #<Date: 4909665/2,0,2299161>
+# Add delegation for Time.now
+date.def_delegator :Time, "now","with_time"
+puts date.with_time #=>Thu Jan 01 23:03:04 +0200 2009
+{% endhighlight %}
+<h3>Delegate Lib</h3>
+<p><a href="http://www.ruby-doc.org/stdlib/libdoc/delegate/rdoc/index.html">Delegate lib</a> is another lib that provides delegation, i'll explain 2 ways to use it:</p>
+<h4>
+DelegateClass method</h4>
+<p>Use the top level <a href="http://www.ruby-doc.org/stdlib/libdoc/delegate/rdoc/files/delegate_rb.html#M000406">DelegateClass</a> method which allows you to easily setup delegation through class inheritance. In the following example, I want to make a new class called CurrentDate, which holds the current date and some extra methods, at the same time I'm delegating to normal date objects:</p>
+{% highlight ruby  %}
+require "delegate"
+require "date"
+# Notice the class definition
+class CurrentDate < DelegateClass(Date)
+  def initialize
+    @date = Date.today
+    # Pass the object to be delegated to the superclass. 
+    super(@date)
+  end
+
+  def to_s
+    @date.strftime "%Y/%m/%d"
+  end
+
+  def with_time
+    Time.now
+  end
+end
+
+cdate = CurrentDate.new
+# Notice how delegation works
+# Instead of doing cdate.date.day and defining attr_accessor for the date , i'm doing c.day
+puts cdate.day #=>1
+puts cdate.month #=>1
+puts cdate.year #=>2009
+# Testing added methods
+# to_s
+puts cdate #=> 2009/01/01
+puts cdate.with_time #=> Thu Jan 01 23:22:20 +0200 2009
+{% endhighlight %}
+<h4>SimpleDelegator class</h4>
+<p>Use it to delegate to an object that might be changed:</p>
+{% highlight ruby  %}
+require "delegate"
+require "date"
+today = Date.today #=> #<Date: 4909665/2,0,2299161>
+yesterday = today â€“ 1 #=> #<Date: 4909663/2,0,2299161>
+date = SimpleDelegator.new(today) #=> #<Date: 4909665/2,0,2299161>
+puts date #=>2009-01-01
+# Use __setobj__ to change the delegate
+date.__setobj__(yesterday)#=> #<Date: 4909663/2,0,2299161>
+puts date #=>2008-12-31
+{% endhighlight %}
+<p>As you can see, we made 2 objects and then delegated to them consequently.</p>
+<h2>
+What about Rails?</h2>
+<p>Rails adds new functionality called  "delegate":<br />
+Which provides a <a href="http://api.rubyonrails.com/classes/Module.html#M000048">delegate</a> class method to easily expose contained objectsâ€™ methods as your own. Pass one or more methods (specified as symbols or strings) and the name of the target object as the final :to option (also a symbol or string). At least one method and the :to option are required. </p>
+<p>go to your console and create a dummy project ,then cd to that project, and fire the rails console:</p>
+{% highlight bash  %}
+$ rails dummy 
+â€¦...
+$ cd dummy
+$ruby script/console
+Loading development environment (Rails 2.2.2)
+>> Person = Struct.new(:name, :address)
+=> Person
+>> class Invoice < Struct.new(:client)
+>>   delegate :name, :address, :to => :client
+>> end
+=> [:name, :address]
+>> john_doe = Person.new("John Doe", "Vimmersvej 13")
+=> #<struct Person name="John Doe", address="Vimmersvej 13">
+>> invoice = Invoice.new(john_doe)
+=> #<struct Invoice client=#<struct Person name="John Doe", address="Vimmersvej 13">>
+>> invoice.name
+=> John Doe
+>> invoice.address
+=>Vimmersvej 13
+{% endhighlight %}
+<p>I strongly urge you to check the whole provided examples in rails API documetation,to check also how to use this effectively with ActiveRecord.</p>
+<p>Before I finish this article I want to share you the code of delegate method form rails API documentation, I'll add some comments on the code to explain you what is going on:</p>
+{% highlight ruby  %}
+class Module
+  # Delegate method 
+  # It expects an array of arguments that contains the methods to be delegated 
+  # and a hash of options
+  def delegate(*methods)
+    # Pop up the options hash from arguments array
+    options = methods.pop
+    # Check the availability of the options hash and more specifically the :to option
+    # Raises an error if one of them is not there
+    unless options.is_a?(Hash) && to = options[:to]
+      raise ArgumentError, "Delegation needs a target. Supply an options hash with a :to key as the last argument (e.g. delegate :hello, :to => :greeter)."
+    end
+
+    # Make sure the :to option follows syntax rules for method names 
+    if options[:prefix] == true && options[:to].to_s =~ /^[^a-z_]/
+      raise ArgumentError, "Can only automatically set the delegation prefix when delegating to a method."
+    end
+
+    # Set the real prefix value 
+    prefix = options[:prefix] && "#{options[:prefix] == true ? to : options[:prefix]}_"
+
+   # Here comes the magic of ruby :) 
+   # Reflection techniques are used here:
+   # module_eval is used to add new methods on the fly which:
+   # expose the contained methods' objects
+    methods.each do |method|
+      module_eval("def #{prefix}#{method}(*args, &block)\n#{to}.__send__(#{method.inspect}, *args, &block)\nend\n", "(__DELEGATION__)", 1)
+    end
+  end
+end
+{% endhighlight %}
+<p>That's it for this article, we have covered 5 points:</p>
+<p>1-Composition vs inheritance.<br />
+2-What delegation is, and why it's used.<br />
+3-Ruby Forwardable lib.<br />
+4-Ruby Delegate lib.<br />
+5-Rails delegate method.</p>

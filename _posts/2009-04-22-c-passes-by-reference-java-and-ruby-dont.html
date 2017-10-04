@@ -1,0 +1,156 @@
+---
+layout: single
+title: C++ passes by reference, Java and Ruby don't
+date: 2009-04-22 00:17:42.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- C++
+- Java
+- Ruby
+tags:
+- C++
+- Java
+
+---
+<p>I got a lot of comments for the <a href="/2009/04/21/ruby-pass-by-value-or-by-reference">previous article</a>, that was explaining how Ruby passes by value, just like Java does.</p>
+<p>I thought that showing a simple example implemented  in C++, Java and Ruby will clarify the idea. In the following lines, we will make swap functionality in 3 languages, and demonstrate that neither Java nor Ruby passes by reference.</p>
+<p>C++ </p>
+{% highlight cpp  %}
+#include <iostream>
+using namespace std;
+
+class Point {
+private:
+    double x, y;
+public:
+
+    Point(double x, double y) {
+        this->x = x;
+        this->y = y;
+    }
+
+    void print() {
+        cout << "x = " << x << ", y = " << y << endl;
+    }
+};
+
+// Parameters are passed by reference
+
+void swap(Point &p1, Point &p2) {
+    Point temp = p1;
+    p1 = p2;
+    p2 = temp;
+}
+
+int main() {
+    //initializing the points
+    Point val1(5, 10);
+    Point val2(20, 40);
+    //printing their values
+    cout << "Before Passing By Reference" << endl; val1.print(); val2.print();
+    //swaping, passing by referecne
+    swap(val1, val2);
+    //printing the values again
+    cout << "After Passing By Reference" << endl; val1.print(); val2.print();
+}
+</iostream>{% endhighlight %}
+<p>Output:</p>
+{% highlight bash  %}
+$ ./passcpp
+Before Passing By Reference
+x = 5, y = 10
+x = 20, y = 40
+After Passing By Reference
+x = 20, y = 40
+x = 5, y = 10
+{% endhighlight %}
+<p>Java</p>
+{% highlight java  %}
+
+class Point {
+
+    private double x,  y;
+
+    public Point(double x, double y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public String toString() {
+        return String.format("x = %.2f , y = %.2f", x, y);
+    }
+
+
+    public static void swap(Point p1,Point p2){
+        Point temp = p1;
+        p1 = p2;
+        p2 = temp;
+    }
+
+    public static void main(String args[]) {
+        //initializing the points
+        Point var1 = new Point(5, 10);
+        Point var2 = new Point(20, 40);
+        //printing their values
+        System.out.printf("Before Passing\n%s\n%s\n", var1, var2);
+        // //swaping, passing by reference value, aka: pass by value
+        swap(var1,var2);
+        //printing the values again
+        System.out.printf("After Passing\n%s\n%s\n", var1, var2);
+    }
+}
+{% endhighlight %}
+<p>Output:</p>
+{% highlight bash  %}
+$ java Point
+Before Passing By Reference
+x = 5.00 , y = 10.00
+x = 20.00 , y = 40.00
+After Passing By Reference
+x = 5.00 , y = 10.00
+x = 20.00 , y = 40.00
+{% endhighlight %}
+<p>Ruby</p>
+{% highlight ruby  %}
+class Point
+  def initialize(x,y)
+    @x,@y = x,y
+  end
+
+  def to_s
+    "x = #{@x} , y = #{@y}"
+  end
+end
+
+def swap(p1,p2)
+  p1,p2 = p2,p1
+end
+
+#initializing the points
+var1 = Point.new(5,10)
+var2 = Point.new(20,40)
+#printing their values
+puts "Before Passing" , var1, var2
+# //swaping, passing by reference value, aka: pass by value
+swap var1,var2
+#printing the values again
+puts "After Passing" , var1, var2
+{% endhighlight %}
+<p>Output:</p>
+{% highlight bash  %}
+$ ruby passruby.rb
+Before Passing By Reference
+x = 5 , y = 10
+x = 20 , y = 40
+After Passing By Reference
+x = 5 , y = 10
+x = 20 , y = 40
+{% endhighlight %}
+<p>As you can notice, in c++ example, passing by reference, will do the swap successfully.<br />
+Java and Ruby both don't pass by reference, instead they pass a copy of the reference, which is a value finally, and so the swap fails, as swapping the copies doesn't swap the original passed objects.</p>
+<p>Please note also that in Java, primitive types are passed by their values directly and no need for any kind of references copies.The same case applies for Ruby, with immediate types(int, char...).</p>
+<p>According to the previous 2 facts, we conclude that neither Java nor Ruby passes by reference, instead, both pass by value.</p>
+<p>I think that fact that Ruby MRI is using C means they can't use references, and so they are using pointers, and that explains why swap fails. </p>
+<p>I hope that the idea is clear now.</p>

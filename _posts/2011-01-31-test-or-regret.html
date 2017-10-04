@@ -1,0 +1,29 @@
+---
+layout: single
+title: Test or Regret!
+date: 2011-01-31 06:16:15.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- Test
+tags:
+- test
+
+---
+<p>Yes, for god sake test! Whoever you are, a web/desktop/mobile developer please add automated tests to your work. If you don't then your works is questionable.<br />
+Why? That's what I'm going to answer in the next few lines.</p>
+<h2>Specs</h2>
+<p>Were you in the case where you or a new developer joined a team? Were you in the case where you got to work on a legacy code? Were you in the case where you forgot what your own code was doing?<br />
+All the above scenarios are normal during your lifetime as a developer or a team lead. All of them have a common shared thing: <em>What is this code doing? and where to start?</em><br />
+Adding automated tests to the project code base, where a test case refers to a real world scenario that the code has to deal with, is the ideal answer for the questions above.<br />
+When you add a test scenario, then technically you are adding a new spec on how the code should behave in that scenario.  When you add automated tests for some module, then referring to these tests is the first thing you can do to understand how/what this module is doing and behaving in different cases.<br />
+<strong>The bottom line is that automated tests are your project specs.</strong></p>
+<h2>Clean Code</h2>
+<p>A test usually checks the output/behavior of some method. Once you start testing you will find yourself in need to restructure your code in a way that you can test it. Technically, you will make sure the method is doing one thing and one thing only. One thing that can be tested like this: given some input <em>x</em>, the method should have some output <em>y</em>. Following this pattern(which technically you will be forced to when doing automated testing) will lead to a clean code, a code that doesn't mix responsibilities and thus become harder to be read, updated and maintained.</p>
+<h2>Code Quality</h2>
+<p>New features will come, you have to update/refactor the code and then go and do some human tests to make sure everything you developed ever will work.  This is called <a href="http://en.wikipedia.org/wiki/Regression_testing">Regression Testing</a>, test to make sure you didn't break old code. Doing regression testing yourself is a natural thing and it will continue to be like that till your code base starts to evolve and evolve till you reach a level where doing a small fix in the code will make you scared to death before releasing since you have to do tens of human tests to make sure you didn't break anything. Of course this will get worse if you are modifying others code. You simply(and really simply) can overcome this regression testing routine if you have a test suite for your code base that you can fire after whatever change you do to check what code is broken and what's needed to be fixed. This will produce a robust code. Not only that, actually it will increase the code quality since whatever bug you have at some phase of the project, will be fixed and the fix will have an associated test scenario that will be added to the test suite. Next time when you update the code, the test suite will test that bug scenario to make sure you didn't reproduce it again.</p>
+<h2>Agile Development</h2>
+<p>Most of the time you will have new requested features, or new discovered bugs. You have to add/fix whatever needed. Doing the changes and then doing human testing will consume your time and thus will slow down the project development and progress, and so will prevent it from iterating quickly. Having a test suite will save the time, and will complete the chain of <strong>Design, Test and Refactor </strong>methodology that Agile development poses. Actually some of you might think that adding automated tests will slow down the progress of development, which is wrong, very wrong. As a start it might slow it down, but after that it will save your time specially once your project starts to iterate with new features or bug fixing.</p>
+<h3>Conclusion</h3>
+<p><strong>Test or you'll regret!</strong> and if you want to do it, then do it right. I advice you to check <a href="http://en.wikipedia.org/wiki/Behavior_Driven_Development">Behavior Driven Development</a>(BDD), a methodology of development that's based on testing the behavior of your code. </p>

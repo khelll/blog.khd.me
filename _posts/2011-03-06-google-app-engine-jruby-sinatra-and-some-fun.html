@@ -1,0 +1,181 @@
+---
+layout: single
+title: Google App Engine, JRuby, Sinatra and some fun!
+date: 2011-03-06 06:05:57.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- GAE
+- JRuby
+- Ruby
+- Sinatra
+tags:
+- App Engine
+- GAE
+- JRuby
+- Ruby
+- Sinatra
+
+---
+<p>Yesterday I was experimenting with <a href="http://code.google.com/appengine/">Google App Engine</a> for a little project that I was working on. I literally started from ground zero and could do my thing after a long night. I'm blogging about it to share you the idea and save you some time googling solutions. So, here is the thing in brief: I wanted to <strong>parse</strong> some feed on <strong>periodical basis</strong> and <strong>send an email</strong> with new entries. </p>
+<p>Looks like a 10 minutes with <a href="http://nokogiri.org/">Nokogiri</a> and cron jobs. Actually that's true except of the fact that I need to pay for a VPS so that I can run the script with various gems (since I needed to do some work on the feeds before sending, but that's for another topic) and for using cron jobs.  Thus, I decided to try something new this time and I went with GAE since it has <a href="http://code.google.com/appengine/docs/java/memcache/">memecached</a> that I can use as an LRU cache, also it has <a href="http://code.google.com/appengine/docs/java/config/cron.html">cronjobs</a> and finally it has a <a href="http://code.google.com/appengine/docs/java/mail/overview.html">mail</a> system. I'm using <a href="http://jruby.org/">JRuby</a> and <a href="http://www.sinatrarb.com/">Sinatra</a> for this project.</p>
+<p>Here are the steps:</p>
+<p>Install JRuby, I'm using <a href="http://rvm.beginrescueend.com/">RVM</a> on my machine:</p>
+{% highlight bash  %}
+rvm install jruby-1.5.5
+rvm use jruby
+{% endhighlight %}
+<p>Install needed gems, those versions are the ones which worked for me:</p>
+{% highlight bash  %}gem install jbundle
+gem install appengine-sdk -v "1.4.0"
+gem install google-appengine -v "0.0.19" {% endhighlight %}
+<p>Create a simple app:</p>
+{% highlight bash  %} 
+appcfg.rb generate_app notifier
+cd notifier 
+ {% endhighlight %}
+<p>Now let's create the following files <em>(Please note that the following code can be further enhanced)</em>:</p>
+<p><strong>Gemfile</strong></p>
+{% highlight ruby  %} 
+# Critical default settings:
+disable_system_gems
+disable_rubygems
+bundle_path ".gems/bundler_gems"
+
+# List gems to bundle here:
+gem "appengine-apis"
+gem "appengine-rack"
+gem "sinatra"
+gem "sinatra-reloader"
+gem "jruby-rack", "1.0.4"
+gem "nokogiri","1.5.0.beta.3"
+{% endhighlight %}
+<p><strong>config.ru</strong></p>
+<p><em>(fill the sender/receiver emails and the feed URL)</em></p>
+{% highlight ruby  %} 
+require 'sinatra' 
+
+set :sender_email, 'SENDER_EMAIL'
+set :receiver_email, 'RCEIVER_EMAIL'
+set :feed_url, 'FEED_URL'
+
+require 'app'
+run Sinatra::Application
+{% endhighlight %}
+<p><strong>app.rb</strong></p>
+{% highlight ruby  %} 
+require 'digest/sha1'
+require 'appengine-apis/memcache'
+require 'appengine-apis/logger'
+require 'appengine-apis/mail'
+require 'appengine-apis/urlfetch'
+require 'sinatra'
+require 'sinatra/reloader' if development?
+require 'nokogiri'
+
+
+class Fetcher 
+  
+  def initialize(sender_email,receiver_email,feed_url)
+    @sender_email = sender_email
+    @receiver_email = receiver_email
+    @feed_url = feed_url
+  end
+
+  def act
+    send_email(create_message(get_results))
+    "done"
+  end
+  
+  private 
+  def memcache
+    @memcached ||= AppEngine::Memcache.new(:namespace=>"cache")
+  end
+
+        # get the new results only
+  def filter_results(results)
+    res = []
+    results.each do |hashed_guid,info|
+      if memcache.get(hashed_guid).nil?
+        memcache.set(hashed_guid, 1)
+        res << info
+      end
+    end
+    res
+  end
+
+        # parse the feed
+  def get_results
+    results = {}
+    doc = Nokogiri::XML(AppEngine::URLFetch.fetch(@feed_url).body)
+    doc.css('item').each do |item|
+      title = item.at_css('title').content
+      link = item.at_css('link').content
+      description = item.at_css('description').content
+      guid = item.at_css('guid').content
+      results[Digest::SHA1.hexdigest(guid)] = {:title => title,:description => description, :link => link}
+    end
+    filter_results(results)
+  end
+
+        # create email message
+  def create_message(results)
+    template = ""
+    results.each do |info|
+      template += <<-DOC
+      
+        Title: #{info[:title]}
+        Description: #{info[:description]}
+        Link: #{info[:link]}
+        --------------------------------------------------------------------------------------------
+      DOC
+    end
+    template
+  end
+
+
+  def send_email(message)
+    AppEngine::Mail::send(@sender_email,@receiver_email,"New updates for the site",message) if message.length > 0
+  end
+end
+
+
+get '/' do
+  "Hello World!"
+end
+
+
+get '/notify' do
+  Fetcher.new(settings.sender_email,settings.receiver_email,settings.feed_url).act
+end
+{% endhighlight %}
+<p><strong>cron.xml</strong></p>
+<p><em>(You can set the period here, I'm using 15 minutes intervals)</em></p>
+{% highlight xml  %}
+<?xml version="1.0" encoding="UTF-8"?>
+<cronentries>
+  <cron>
+    <url>/notify</url>
+    <description>fetch new data</description>
+    <schedule>every 15 minutes</schedule>
+  </cron>
+</cronentries>
+{% endhighlight %}
+<p>Now, create an application-id at <a href="http://appengine.google.com/start/createapp">appspot.com</a>. Then go to <em>Administration >> Permissions</em> and make sure the <em>sender/receiver emails</em> play some role in the app. Personally, I granted them the developer role.</p>
+<p>Now, go back to the source and modify the application-id in WEB-INF/app.yaml</p>
+{% highlight ruby  %}
+application your-app-id
+{% endhighlight %}
+<p>We should be ready now, start development server, watch the console and make sure no exceptions are there:</p>
+{% highlight bash  %}
+dev_appserver.rb .
+{% endhighlight %}
+<p>If everything is OK, go to <a href="http://localhost:8080/notfiy">http://localhost:8080/notfiy</a> and you should see "Done". </p>
+<p>Let's go live now:</p>
+<p><em>(the first time you execute this, you will prompted to submit the GAE email/pass combination)</em></p>
+{% highlight bash  %}
+appcfg.rb update .
+{% endhighlight %}
+<p>It should now be running at http://your-app-id.appspot.com, and in few minutes you should be receiving the first email. If not, go to app engine page then to <em>Main >> Logs</em>  and check what's the problem. </p>
+<p>I like this stack cause it's Zero cent cost, Zero deployment time, flexible, and it gives me exactly the freedom I want in terms of needed gems. Give it a shot, you won't regret it!</p>

@@ -1,0 +1,56 @@
+---
+layout: single
+title: What i liked most about rails 2.2
+date: 2008-12-07 04:23:09.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- Merb + RoR3
+tags:
+- Merb + RoR3
+- new
+- rails 2.2
+
+---
+<p>Well, finally it's there, many important improvements were added to rails 2.2, and yet new things are on the way, you can check <a href="http://weblog.rubyonrails.org/2008/11/21/rails-2-2-i18n-http-validators-thread-safety-jruby-1-9-compatibility-docs">this blog post </a> to check what's new, while i'm gonna list here what i really liked about the new version of rails 2.2:</p>
+<h2>Thread safe</h2>
+<p>If you really don't know what it means, then most probably you want to check <a title="Q/A: What Thread-safe Rails Means" href="http://blog.headius.com/2008/08/qa-what-thread-safe-rails-means.html">this post</a> by Charles Nutter, however in short terms: threaded rails with a native threaded implementation of ruby (<a title="jruby project" href="http://jruby.codehaus.org/">jruby</a> in our case) will save your memory , make your app more scalable, and most importantly it will make the app deployment very easy, specially when <a href="http://glassfishgem.rubyforge.org/">glassfish gem</a> or even with <a title="jetty rails" href="http://jetty-rails.rubyforge.org/">jetty-rails gem</a> is used.</p>
+<p>And you Just have to make sure your app is thread safe, follow <a title="thread safty" href="http://m.onkey.org/2008/10/23/thread-safety-for-your-rails">this post</a> by Pratik Naik.</p>
+<h2>Well documented</h2>
+<p>So many people complained about this point before, but this a fact is from past now :) , just fire your terminal , go to ur app path, and run :</p>
+{% highlight ruby  %}rake doc:guides{% endhighlight %}
+<p>This will create doc/guides in your project root , with a comprehensive rails guide to learn from.</p>
+<h2>Internationalization or I18n</h2>
+<p>A support for i18n is there now, so  you don't have to install any extra gem or plugin, a<a href="http://i18n-demo.phusion.nl/"> comprehensive demo</a> is put there, <em>just be aware that you don't need to install the plugin when following the demo, cause it's already there in rails 2.2 .</em></p>
+<p>Also check the <a title="rails internationalization i18n" href="http://railscasts.com/episodes/138-i18n">I18n screencast</a> by Ryan Bates.</p>
+<h2>Performance + JRuby compatibility<br />
+</h2>
+<ul>
+<li>Connection pooling is added in this version of rails , which will save the time of opening(open connection with the db server +authentication) and closing the connection for each http request, so now a pool of connections will be used to serve incomming http requests, instead of opening a new connection for each request.</li>
+</ul>
+<ul>
+<li>There were efforts to enhance the erb system , which will affect the rendering process time.</li>
+</ul>
+<ul>
+<li>Rails 2.2 is fully compatible with <a title="jruby project" href="http://jruby.codehaus.org/">JRuby</a> which is the fastest ruby implementation at the current moment, and that will give you better performance when JRuby is used ,specially that the JRuby team is continually and actively(a release every 3-4 weeks) working on optimizing the overall performance and for rails usage as well.</li>
+<li><em>Memoization</em> term was introduced to cache values, check <a href="http://railscasts.com/episodes/137-memoization">this screencast</a> by Ryan Bates.</li>
+<li>ETags and saving your server the hassle : if u don't know about ETags then it's time for that , check <a title="rails etags" href="http://ryandaigle.com/articles/2008/10/25/what-s-new-in-edge-rails-even-better-conditional-get-support">this post</a> by  Ryan Daigle.What matters here is that the new support from rails to ETags  will give you 2 enhancements :
+<ol>
+<li>Frontend enhancement: the client browser will use it's cache to render the needed data and thus won't need to issue a new request to your server to bring the data, thus a faster rendering on client side.</li>
+<li>Backend enhancement: your ror servers won't need to handle some logic to respond back to your client browser requests, thus free the processor to handle other logic.</li>
+</ol>
+</li>
+<li>Template views will be cached now for production mode.</li>
+</ul>
+<h2>Caching actions without their layouts </h2>
+<p>Now it's possible to cache an action without it's corresponding layout:</p>
+{% highlight ruby  %}class HomepageController < ApplicationController
+  # Just pass the param layout with false value
+  caches_action :feedback, :layout => false
+  ...
+end{% endhighlight %}
+<p>This is really cool, cause in many cases our layout will contain some info related to user status in the website.</p>
+<h2>More additions might be very interseting for you</h2>
+<p>As for me, those enhancements and additions listed above , where the most benifitical for my work, other things might attract your attention, for more information about what's new, i strongly urge you to look at <a title="Ruby on Rails 2.2 PDF" href="http://envycasts.com/products/ruby-on-rails-22-pdf">Ruby on Rails 2.2 PDF</a> by By Carlos Brando.<a title="Ruby on Rails 2.2 PDF" href="http://envycasts.com/products/ruby-on-rails-22-pdf"><br />
+</a></p>

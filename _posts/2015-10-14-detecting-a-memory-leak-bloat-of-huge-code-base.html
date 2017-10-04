@@ -1,0 +1,28 @@
+---
+layout: single
+title: Detecting a Memory Leak/Bloat of a Huge Code Base
+date: 2015-10-14 04:16:00.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- DevOps
+- RoR
+- Ruby
+tags:
+- memory-leak
+- Ruby
+
+---
+<p>Few weeks ago, I was maintaining a product with big traffic when I noticed that Nginx processes were eating up the server memory on random occasions. Nothing consistent, and the exact cause is totally unknown.</p>
+<p>I initially thought this might be a memory leak, and I started doing memory profiling locally on my machine. I had no luck doing so, for several reasons, amongst of them: Huge code base and the testing environment was nothing like the production one in terms of data size and user base.</p>
+<p>Then I thought why not treat the running process as a black box and try doing some linux stuff, so I logged the memory stats using this command:</p>
+<pre>ps -o rss</pre>
+<p>Which dumps the size of the current request memory. It was good enough, but I used a better wrapper that helped me test on several platforms, using NewRelic code:</p>
+{% highlight ruby  %}
+#https://github.com/newrelic/rpm/blob/master/lib/new_relic/agent/samplers/memory_sampler.rb
+memory_profiler = NewRelic::Agent::Samplers::MemorySampler.new.sampler
+logger.info "Memory for #{Process.pid}: #{memory_profiler.get_sample}"
+{% endhighlight %}
+<p>I waited for few hours and watched the memory consumed by the process after each request. Then I found out that I had a <a href="https://blog.engineyard.com/2009/thats-not-a-memory-leak-its-bloat/">memory bloat</a>, where the code was loading thousands of records due to wrong query.</p>
+<p>It was a fun experiment, finding which request was eating the memory was a tedious task, but treating it as a black box turned out to be the right way to inspect it.</p>

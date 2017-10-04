@@ -1,0 +1,188 @@
+---
+layout: single
+title: StackOverflow cool Ruby questions 3
+date: 2010-01-29 09:02:31.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- Ruby
+- Stackoverflow
+tags:
+- Ruby
+- Stackoverflow
+
+---
+<p>Welcome to the third post of this <a href="/category/stackoverflow/">series</a>.  Just before diving into the new questions' set, I want to mention a little <a href="http://gist.github.com/255479">script</a> that I wrote to notify the user when a new question is posted on Stackoverflow, it works on Mac and uses growl.<br />
+Now let's proceed to questions:</p>
+<h2>Relationship between the metaclass of base and derived classes</h2>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/2137853/what-is-the-relationship-between-the-metaclass-of-base-and-derived-class-in-ruby">What is the relationship between the metaclass of Base and Derived class in Ruby?</a></p>
+<p><strong>The question text is</strong>:</p>
+<p>In Ruby, we could use <code>super</code> within singleton method to call the corresponding super class's singleton method, like the following code shows.</p>
+{% highlight ruby  %}
+class Base
+  def self.class_method
+    puts "Base class method"
+  end
+end
+
+class Derived < Base
+  def self.class_method
+    puts "Derived class method"
+    super
+  end
+end
+
+Derived.class_method
+# Derived class method
+# Base class method
+{% endhighlight %}
+<p>However, I don't seem quite get how that call to <code>super</code> within <code>Derived.class_method</code> could reach <code>Base.class_method</code>. I'd assume that <code>class_method</code> is defined on their metaclass, does that mean their metaclass has parent/child relationship? (I can't quite confirm that by experiments)</p>
+<p>I'm asking this question because I remembered seeing somewhere there's some kind of relationship between base and derived class' metaclass (but I can't find it any more). In addition to know how actually <code>super</code> works, I'd also like to confirm whether the two metaclasses are totally separate or not.</p>
+<p><strong>The answer is</strong>:<br />
+There are four class objects in play here:</p>
+{% highlight ruby  %}
+<class>---class---><class>
+Base               #Base
+   ^                  ^
+   |                  |
+   |                  |
+ super              super
+   |                  |
+   |                  |
+<class>            <class>
+Derived---class--->#Derived
+</class></class></class></class>{% endhighlight %}
+<p>Nomenclature:</p>
+<ul>
+<li><...> is the class of each object.</li>
+<li>The name of the class is on the second line.</li>
+<li>If the name starts with #, it's the eigenclass (aka singleton class).</li>
+<li>super points to a class's superclass</li>
+<li>class points to the class's class.</li>
+</ul>
+<p>When you call Derived.class_method, Ruby follows the "right one and then up" rule: First go to the object's class, then follow the superclass chain up, stopping when the method is found:</p>
+<ul>
+<li>The receiver of the "class_method" call is Derived. So follow the chain right to Derived's class object, which is its eigenclass (#Derived).</li>
+<li>  #Derived does not define the method, so Ruby follows the chain up the chain to #Derived's superclass, which is #Base.</li>
+<li>    The method is found there, so Ruby dispatches the message to #Base.class_method</li>
+</ul>
+<p>You don't think I knew all this stuff off the top of my head, did you? Here's where my brain got all this meta juju: <a href="http://pragprog.com/titles/ppmetr/metaprogramming-ruby">Metaprogramming Ruby</a>.</p>
+<p><strong>Part 2.</strong> How to make an "eigenclass" (aka "singleton class") come out of hiding</p>
+{% highlight ruby  %}
+class Object
+  def eigenclass
+    class << self
+      self
+    end
+  end
+end
+{% endhighlight %}
+<p>This method will return the eigenclass of any object. Now, what about classes? Those are objects, too.</p>
+{% highlight ruby  %}
+p Derived.eigenclass               # => #<class:derived>
+p Derived.eigenclass.superclass    # => #<class:base>
+p Base.eigenclass                  # => #<class:base>
+</class:base></class:base></class:derived>{% endhighlight %}
+<p>Note: Above is from Ruby1.9. When run under Ruby 1.8, you get a surprise:</p>
+{% highlight ruby  %}
+p Derived.eigenclass.superclass    # => #<class:class>
+</class:class>{% endhighlight %}
+<h2>Idiomatic object creation</h2>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/1778638/idiomatic-object-creation-in-ruby">Idiomatic object creation in ruby</a></p>
+<p><strong>The question text is</strong>:</p>
+<p>In ruby, I often find myself writing the following:</p>
+{% highlight ruby  %}
+class Foo
+  def initialize(bar, baz)
+    @bar = bar
+    @baz = baz
+  end
+
+  << more stuff >>
+
+end
+{% endhighlight %}
+<p>or even</p>
+{% highlight ruby  %}
+class Foo
+  attr_accessor :bar, :baz
+
+  def initialize(bar, baz)
+    @bar = bar
+    @baz = baz
+  end
+
+  << more stuff >>
+
+end
+{% endhighlight %}
+<p>I'm always keen to minimize boilerplate as much as possible - so is there a more idiomatic way of creating objects in ruby?</p>
+<p><strong>The answer is:</strong></p>
+<p>Struct objects are classes which do almost what you want. The only difference is, the initialize method has nil as default value for all it's arguments. You use it like this</p>
+{% highlight ruby  %}
+A= Struct.new(:a, :b, :c)
+{% endhighlight %}
+<p>or</p>
+{% highlight ruby  %}
+class A < Struc.new(:a, :b, :c)
+end
+{% endhighlight %}
+<p><em>Struct has one big drawback. You can not inherit from another class.</em></p>
+<h2>Block vs brackets</h2>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/2122380/using-do-block-vs-brackets">Using do block vs brackets {}</a></p>
+<p><strong>The question text is</strong>:</p>
+<p>New to ruby, put on your newbie gloves.</p>
+<p>Is there any difference (obscure or practical) between the following two snippets?</p>
+{% highlight ruby  %}
+my_array = [:uno, :dos, :tres]
+my_array.each { |item| 
+    puts item
+}
+
+my_array = [:uno, :dos, :tres]
+my_array.each do |item| 
+    puts item
+end
+{% endhighlight %}
+<p>I realize the bracket syntax would allow you to place the block on one line</p>
+{% highlight ruby  %}
+my_array.each { |item| puts item }
+{% endhighlight %}
+<p>but outside of that are there any compelling reasons to use one syntax over the other?</p>
+<p><strong>The  answer is:</strong></p>
+<p><a href="http://rads.stackoverflow.com/amzn/click/0596523696">Ruby cookbook</a> says bracket syntax has higher precedence order than <code>do..end</code><br />
+Keep in mind that the bracket syntax has a higher precedence than the do..end syntax. Consider the following two snippets of code:</p>
+{% highlight ruby  %}
+1.upto 3 do |x|
+  puts x
+end
+
+1.upto 3 { |x| puts x }
+# SyntaxError: compile error
+{% endhighlight %}
+<p>Second example only works when parentheses is used, <code>1.upto(3) { |x| puts x }</code></p>
+<h2>String and whitespace</h2>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/2130676/see-if-a-ruby-string-has-whitespace-in-it">See if a ruby string has whitespace in it</a></p>
+<p><strong>The question text is</strong>:</p>
+<p>I want to see if a string has any white space in it. What's the most effective way of doing this in ruby?</p>
+<p>Thanks</p>
+<p><strong>The  answer is:</strong></p>
+<p>If by "white space" you mean in the Regular Expression sense, which is any of space character, tab, newline, carriage return or (I think) form-feed, then any of the answers provided will work:</p>
+{% highlight ruby  %}
+s.match(/\s/)
+s.index(/\s/)
+s =~ /\s/
+s[/\s/]
+{% endhighlight %}
+<h2>Index of the largest value in an array</h2>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/2149802/in-ruby-what-is-the-cleanest-way-of-obtaining-the-index-of-the-largest-value-in">In Ruby, what is the cleanest way of obtaining the index of the largest value in an array? </a></p>
+<p><strong>The question text is</strong>:</p>
+<p>If a is the array, I want a.index(a.max), but something more Ruby-like. It should be obvious, but I'm having trouble finding the answer at so and elsewhere. Obviously, I am new to Ruby.</p>
+<p><strong>The  answer is:</strong></p>
+<p>For Ruby 1.8.7 or above:</p>
+{% highlight ruby  %}
+a.each_with_index.max[1]
+{% endhighlight %}
+<p>It does one iteration. Not entirely the most semantic thing ever, but if you find yourself doing this a lot, I would wrap it in an index_of_max method anyway.</p>
+<p><code>each_with_index</code> without a block returns an enumerator that gives the item and its index. We then send <code>max</code> to this enumerator, which does the standard <code>max</code> algorithm on item-index pairs. <code>Array.<=></code> is implemented so that the first item determines the ordering (unless there's a tie, in which case the second is compared, and so on), so this works basically the same as doing <code>max</code> on an array of the values themselves. Then to get the index, we ask for the second item of the result (since we got a series of <code>[value, index]</code> pairs from <code>each_with_index</code>)</p>

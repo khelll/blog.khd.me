@@ -1,0 +1,101 @@
+---
+layout: single
+title: StackOverflow cool Ruby questions 4
+date: 2010-03-16 15:21:41.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- Ruby
+- Stackoverflow
+tags:
+- Ruby
+- Stackoverflow
+
+---
+<p>Welcome to the fourth post of this <a href="/category/stackoverflow/">series</a>.  Just before proceeding to the questions, I would like to mention the great<a href="http://www.pragprog.com/titles/ppmetr/metaprogramming-ruby"> Metaprogramming Ruby: Program Like the Ruby Pros</a> book by Paolo Perrotta, a very good book that explains the metaprogramming aspects of the Ruby language.<br />
+Now let's get going!</p>
+<h2>Scope gates</h2>
+<p>Taken from the above mentioned book:</p>
+<blockquote><p>There are exactly three places where a program leaves the previous scope behind and opens a new one:<br />
+• Class definitions • Module definitions • Methods<br />
+Scope changes whenever the program enters (or exits) a class or module definition or a method. These three borders are marked by the keywords class, module, and def, respectively. Each of these keywords acts like a Scope Gate.</p></blockquote>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/2289680/closure-doesnt-work">Closure doesn’t work</a></p>
+<p><strong>The question text is</strong>:<br />
+If block is a closure, why this code does not work? And how to make it work?</p>
+{% highlight ruby  %}
+def R(arg)
+  Class.new do
+    def foo
+      puts arg
+    end
+  end
+end
+
+class A < R("Hello!")
+end
+
+A.new.foo #throws undefined local variable or method `arg' for #<a:0x2840538>
+</a:0x2840538>{% endhighlight %}
+<p><strong>The answer is</strong>:<br />
+Blocks are closures and arg is indeed available inside the <code>Class.new</code> block. It's just not available inside the <code>foo</code> method because def starts a new scope. If you replace <code>def</code> with <code>define_method</code>, which takes a block, you'll see the result you want:</p>
+{% highlight ruby  %}
+def R(arg)
+  Class.new do
+    define_method(:foo) do
+      puts arg
+    end
+  end
+end
+
+class A < R("Hello!")
+end
+
+A.new.foo # Prints: Hello!
+{% endhighlight %}
+<h2>Almost everything in Ruby is an object</h2>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/416047/examples-of-things-that-are-not-objects-in-ruby">Examples of ‘Things’ that are not Objects in Ruby</a></p>
+<p><strong>The question text is</strong>:<br />
+"Everything is an object" was one of the first things I learned about Ruby, but in Peter Cooper's Beginning Ruby: From Novice to Professional book, it is mentioned that "<strong>almost</strong> everything in Ruby is an object".</p>
+<p>Can you give me some <strong>examples of things that are not objects in Ruby</strong>?</p>
+<p><strong>The answer is</strong>:<br />
+he most obvious one that jumps into my head would be blocks. Blocks can be easily reified to a Proc object, either by using the &block parameter form in a parameter list or by using lambda, proc, Proc.new or (in Ruby 1.9) the "stabby lambda" syntax. But on its own, they aren't objects.</p>
+<p>Another example are built in operators: while methods are objects, some operators are not implemented as methods (and, or &&, ||), so those operators aren't objects.</p>
+<h2>Hash keys</h2>
+<p>The idea here is that whenever you want to define your own keys types for Ruby hashes, then you need to define 2 methods <a href="http://ruby-doc.org/core/classes/Object.html#M000347">#eq?</a> and <a href="http://ruby-doc.org/core/classes/Object.html#M000337">#hash</a> for those types.</p>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/2328685/how-to-make-object-instance-a-hash-key-in-ruby">How to make object instance a hash key in Ruby?</a></p>
+<p><strong>The question text is</strong>:<br />
+I have a class Foo with a few member variables. When all values in two instances of the class are equal I want the objects to be 'equal'. I'd then like these objects to be keys in my hash. When I currently try this, the hash treats each instance as unequal.</p>
+{% highlight ruby  %}
+h = {}
+f1 = Foo.new(a,b)
+f2 = Foo.new(a,b)
+{% endhighlight %}
+<p>f1 and f2 should be equal at this point.</p>
+{% highlight ruby  %}
+h[f1] = 7
+h[f2] = 8
+puts h[f1]
+{% endhighlight %}
+<p>should print 8</p>
+<p><strong>The answer is</strong>:<br />
+See <a href="http://ruby-doc.org/core/classes/Hash.html">http://ruby-doc.org/core/classes/Hash.html</a></p>
+<blockquote><p> Hash uses key.eql? to test keys for equality. If you need to use instances of your own classes as keys in a Hash, it is recommended that you define both the eql? and hash methods. The hash method must have the property that a.eql?(b) implies a.hash == b.hash.</p></blockquote>
+<p>The eql? method is easy to implement: return true if all member variables are the same. For the hash method, use [@data1, @data2].hash</p>
+<h2>Kernel#abort</h2>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/29539/ruby-exit-message">Ruby - Exit Message</a></p>
+<p><strong>The question text is</strong>:<br />
+Is there a one line function call that quits the program and displays a message? I know in Perl its as simple as this:</p>
+{% highlight ruby  %}
+die("Message goes here")
+{% endhighlight %}
+<p>Essentially I'm just tired of typing this:</p>
+{% highlight ruby  %}
+puts "Message goes here"
+exit
+{% endhighlight %}
+<p><strong>The answer is</strong>:<br />
+The 'abort' function does this. For example:</p>
+{% highlight ruby  %}
+abort("Message goes here")
+{% endhighlight %}

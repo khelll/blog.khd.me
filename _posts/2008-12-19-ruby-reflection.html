@@ -1,0 +1,224 @@
+---
+layout: single
+title: Ruby reflection
+date: 2008-12-19 14:23:28.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- Ruby
+tags:
+- reflection
+- Ruby
+
+---
+<p>If you are here, then most probably you want to know more about ruby reflection interface. Well that's true, but I always find myself in need to explain few things before I get started with my posts, and this time I find myself in need of explaining few things related to ruby's OOP.</p>
+<p>I'm pretty sure that you always heard that "in ruby: everything is an object." , but have you ever thought of that carefully?<br />
+The first thing that comes to a one's mind is something like :</p>
+{% highlight ruby  %}
+5.class #=> Fixnum
+"hello".class #=> String
+{% endhighlight %}
+<p>But have you thought of your class as an object? Well that seems odd, but that's how ruby works:</p>
+{% highlight ruby  %}
+class Foo;end  #=> nil
+Foo.class #=> Class
+{% endhighlight %}
+<p>What does the above snippet of code mean exactly?<br />
+It means 2 things : Foo is a constant and that constant holds(refers to) an object of Class type. </p>
+<p>Let me prove that 2 you:</p>
+{% highlight ruby  %}
+Foo = Class.new
+(irb):8 warning: already initialized constant Foo
+=> Foo
+{% endhighlight %}
+<p>As you can see, I got a warning because I tried to initialize the constant Foo again.</p>
+<p>So ,when you define some class 'Foo' in ruby, all you are doing is:<br />
+1-instantiating an object of type Class.<br />
+2-initializing a constant Foo that refers to that created object .</p>
+<p>So bear in mind that when I say "object" ,then I <strong>do</strong> mean <strong>any object</strong>; an object of  Class type, or any object of any type.</p>
+<p>Now, let's move to another point. What about the 'Singleton Class', did you have the chance to work with it before?<br />
+Simply it's the class that holds all singleton methods of an object, whether it's a class object , or any other object. </p>
+<p>Let's start by defining 2 class methods (a <strong>class method</strong> is nothing but: a singleton method of an object of Class type) :</p>
+{% highlight ruby  %}
+class Foo
+  def self.hi ; p "hi" ;end
+  def self.bye ; p "bye" ; end
+end
+Foo.singleton_methods #=> ["hi","bye"]
+{% endhighlight %}
+<p>You could also have written that in this way:</p>
+{% highlight ruby  %}
+class Foo
+  class << self
+    def hi ; p "hi" ; end
+    def bye ; p "bye" ; end
+  end
+end
+Foo.singleton_methods #=> ["hi","bye"]
+{% endhighlight %}
+<p>The above inner class mentioned with "class << self" is what we call : a singleton class.<br />
+Let's define a method that returns back the singleton class for us :</p>
+{% highlight ruby  %}
+class Object
+  def singleton_class 
+     class << self
+       self
+     end
+  end
+end 
+{% endhighlight %}
+<p>Now try this :</p>
+{% highlight ruby  %}
+Foo.singleton_methods #=> ["bye", "hi"]
+Foo.singleton_class.instance_methods(false) #=> ["bye", "hi"]
+{% endhighlight %}
+<p>As you can see, the singleton class is the class that holds all singleton methods.<br />
+We will use the singleton class later in this series, so keep the concept in mind.</p>
+<p>Let's now get back to our topic on ruby's reflection api , i will introduce 3 methods in this post: <strong>eval</strong> , <strong>instance_eval</strong> and <strong>class_eval</strong>.</p>
+<h3>eval</h3>
+<p>'eval' is a method that evaluates a ruby string : </p>
+{% highlight ruby  %}
+eval "3+4" #=> 7
+eval "def multiply(x,y) ; x*y; end"
+multiply(4,7) #=> 28
+{% endhighlight %}
+<p>eval can also work in the scope of <a href="http://www.ruby-doc.org/core/classes/Binding.html">bindings</a> ; a binding is an object that encapsulates the execution context at some particular place in the code and retain this context for future use. Look at this example of using bindings with eval :</p>
+{% highlight ruby  %}
+class Demo
+  def initialize(n)
+    @secret = n
+  end
+  def getBinding
+    return binding()# a method defined in Kernel module
+  end
+end
+k1 = Demo.new(99)
+#get the value of the instance variable @secrete stored in the binding of object k1
+eval("@secret", k1.getBinding)   #=> 99
+{% endhighlight %}
+<p>Also can work with proc objects :</p>
+{% highlight ruby  %}
+def greeting(name)
+  lambda{|greetings| greetings.collect {|g| "#{g} #{name}"} }
+end
+greeter = greeting("dude") #=> #<Proc:0xb752b810@(irb):2>
+greeter.call ["hi","hello","hola"] #=> ["hi dude", "hello dude", "hola dude"]
+eval("name='khelll'",greeter) #=> "khelll"
+greeter.call ["hi","hello","hola"] #=> ["hi khelll", "hello khelll", "hola khelll"]
+{% endhighlight %}
+<h3>instance_eval</h3>
+<p>This method works in the context of the object : </p>
+{% highlight ruby  %}
+class Klass
+  def initialize
+    @secret = 99
+   end
+end
+k = Klass.new
+k.instance_eval { @secret }   #=> 99 , notice the @ 
+{% endhighlight %}
+<p>And could be used to define singleton methods :</p>
+{% highlight ruby  %}
+Fixnum.instance_eval "def zero; 0 ;end"                                                 
+Fixnum.zero #=> 0
+{% endhighlight %}
+<p>you can pass it a block instead of the string :</p>
+{% highlight ruby  %}
+Fixnum.instance_eval{ def ten ;10;end }
+Fixnum.ten #=> 10
+{% endhighlight %}
+<h3>class_eval</h3>
+<p>Evaluates a string or a block in the context of the receiver</p>
+{% highlight ruby  %}
+Foo.class_eval{@@x=1} #=> 1
+Foo.class_eval{@@x} #=> 1
+{% endhighlight %}
+<p>And it defines instance methods when called on some object</p>
+{% highlight ruby  %}
+Fixnum.class_eval "def number ; self ;end"
+5.number #=> 5
+{% endhighlight %}
+<p>And as instance_eval, a block instead of the string could be passed</p>
+{% highlight ruby  %}
+Fixnum.class_eval{ def number;self;end}
+7.number #=> 7
+{% endhighlight %}
+<p>You can use class_eval to dynamically use private methods, for example to use the private method 'include':</p>
+{% highlight ruby  %}
+module M; end
+String.include M #=> NoMethodError: private method `include' called for String:Class
+String.class_eval{include M} #=> you could do it with String.send(:include,M)
+{% endhighlight %}
+<p>Now let's make use of our knowledge,let's try to redefine the <a href="http://www.ruby-doc.org/core/classes/Module.html#M001701">attr_accessor</a> method in our way, I will make a similar method called attr_access :</p>
+{% highlight ruby  %}
+class Class
+  def attr_access(*attrs)
+    attrs.each do |attr|
+      class_eval %Q{
+      def #{attr} 
+        @#{attr}
+      end
+      def #{attr}=(value)
+        @#{attr} = value
+      end
+      }
+    end
+  end
+end
+
+class Foo 
+ attr_access :a,:b 
+end
+
+Foo.instance_methods(false) #=> ["b=", "a=", "b", "a"]
+{% endhighlight %}
+<p>in a similar way we can define class attribute accessors :</p>
+{% highlight ruby  %}
+class Class
+    def cattr_access(*attrs)
+      attrs.each do |attr|
+        class_eval %Q{
+        def self.#{attr}
+          @@#{attr}
+        end
+        def self.#{attr}=(value)
+          @@#{attr} = value
+        end
+        }
+      end
+    end
+end
+{% endhighlight %}
+<p>Or with we can use the singleton class :</p>
+{% highlight ruby  %}
+class Class
+  def singleton_class 
+    class << self
+      self 
+    end 
+  end
+  
+  def cattr_access(*attrs)
+    attrs.each do |attr|
+      singleton_class.class_eval %Q{
+        def #{attr}
+       @@#{attr}
+     end
+     def #{attr}=(value)
+        @@#{attr} = value
+     end
+       }
+    end
+  end
+end
+{% endhighlight %}
+<p>And in both cases we can do :</p>
+{% highlight ruby  %}
+class Foo ; cattr_access :cx,:cy end
+Foo.singleton_methods(false) #=> ["cy", "cy=", "cx", "cx="]
+{% endhighlight %}
+<p>Give it a try and try to define attr_reader and attr_writer for both object and class variables.</p>
+<p>I think it's enough for this post, the next post will contain more methods to look at. See you then.</p>
+<p><strong>Update 1</strong>: fixing some typos.<br />
+<strong>Update 2</strong>: second part is <a href="/2008/12/26/ruby-reflection-2">here</a>.</p>

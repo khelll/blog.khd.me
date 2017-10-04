@@ -1,0 +1,158 @@
+---
+layout: single
+title: Observer and Singleton design patterns in Ruby
+date: 2009-08-21 06:36:05.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- Design Patterns
+- Ruby
+tags:
+- Design Patterns
+- Observer
+- Ruby
+- Singleton
+
+---
+<p><em>This is my first article in <a href="http://www.railsmagazine.com/">http://railsmagazine.com</a>, it was published in <a href="http://railsmagazine.com/issues/3">issue 3</a>, so basically I'm just republishing it here again.</em></p>
+<p>Observer and singleton are two common design patterns that a programmer should be familiar with, however what made me write about them, is that both are there out of the box for you to use in ruby.<br />
+So let’s have a look at both and see how ruby help you use them directly:</p>
+<h2>Observer Design Pattern</h2>
+<p>According to Wikipedia:</p>
+<blockquote><p>The observer pattern (sometimes known as publish/subscribe) is a software design pattern in which an object, called the subject, maintains a list of its dependents, called observers, and notifies them automatically of any state changes, usually by calling one of their methods. It is mainly used to implement distributed event handling systems.</p></blockquote>
+<p>So how does ruby help you implementing this design pattern? Well, the answer is by mixing the observable module into your subject (observed object).<br />
+Let’s take an example, let’s suppose we have a banking mechanism that notifies the user by several ways upon withdrawal operations that leaves the account with balance less or equal to $0.5.<br />
+If we look deeply at this problem, we can qualify it as a good candidate for observer design pattern, where the bank account is our subject and the notification system as the observer.<br />
+Here is a code snippet for this problem and it’s solution:</p>
+{% highlight ruby  %}
+# require the observer lib file
+require “observer”
+class Notifier
+end
+
+class EmailNotifier < Notifier
+  def update(bank_account)
+    if bank_account.balance <= 10
+      puts “Sending email to: ‘#{bank_account.owner}’ informing him with his account balance: #{bank_account.balance}$.”
+      # send the email mechanism
+    end
+  end
+end
+
+class SMSNotifier < Notifier
+  def update(bank_account)
+    if bank_account.balance <= 0.5 
+      puts “Sending SMS to: ‘#{bank_account.owner}’ informing him with his account balance: #{bank_account.balance}$.”
+      # send sms mechanism
+    end
+  end
+end
+
+class BankAccount
+  # include the observable module
+  include Observable 
+  attr_reader :owner,:balance
+  def initialize(owner,amount)
+    @owner,@balance = owner,amount
+    # adding list of observes to the account
+    add_observer EmailNotifier.new  
+    add_observer SMSNotifier.new
+  end
+  
+  # withdraw operation
+  def withdraw(amount)
+    # do whatever you need
+    @balance -=amount if (@balance - amount) > 0
+    # now here comes our logic
+    # issue that the account has changed
+    changed
+    # notify the observers
+    notify_observers self
+  end
+end
+account = BankAccount.new “Jim Oslen”, 100
+account.withdraw 99.5
+#=>Sending email to: ‘Jim Oslen’ informing him with his account balance: 0.5$.
+#=>Sending SMS to: ‘Jim Oslen’ informing him with his account balance: 0.5$.
+{% endhighlight %}
+<p>So to user ruby observer lib we have to implement four things:<br />
+1- Require the ‘observer’ lib and include it inside the subject (observed) class.<br />
+2- Declare the object to be ‘changed’ and then notify the observers when needed – just like we did in ‘withdraw’ method.<br />
+3- Declare all needed observers objects that will observe the subject.<br />
+4- Each observer must implement an ‘update’ method that  will be called by the subject.</p>
+<h2>Observers in Rails</h2>
+<p>You can find observers in rails when using ActiveRecord, it’s a way to take out all <a href="http://api.rubyonrails.org/classes/ActiveRecord/Callbacks.html">ActiveRecord callbacks</a> out of the model, for example a one would do this:</p>
+{% highlight ruby  %}
+class User < ActiveRecord::Base
+  after_create :send_email
+  private
+  def send_email
+    #send a welcome email
+  end
+end
+{% endhighlight %}
+<p>A neater solution is to use Observers:</p>
+{% highlight ruby  %}
+class UserObserver < ActiveRecord::Observer
+  def after_create(user)
+    #send a welcome email
+  end
+end
+{% endhighlight %}
+<p>You can generate the previous observer using the following command:</p>
+{% highlight bash  %}
+ruby script/generate observer User
+{% endhighlight %}
+<p>You still can have observers that map to models that don’t match with the observer name using the ‘observe’ class method, you also can observe multiple models using the same method:</p>
+{% highlight ruby  %}
+class NotificationObserver < ActiveRecord::Observer
+  observe :user, :post
+  def after_create(record)
+    #send thanks email
+  end
+end
+{% endhighlight %}
+<p>Finally don’t forget to add the following line inside config/environment.rb to define observers:</p>
+{% highlight ruby  %}
+config.active_record.observers = :user_observer
+{% endhighlight %}
+<h2>Singleton Design Pattern</h2>
+<p>According to Wikipedia:</p>
+<blockquote><p>In software engineering, the singleton pattern is a design pattern that is used to restrict instantiation of a class to one object. (This concept is also sometimes generalized to restrict the instance to a specific number of objects – for example, we can restrict the number of instances to five objects.) This is useful when exactly one object is needed to coordinate actions across the system.</p></blockquote>
+<p>The singleton design pattern is used to have one instance of some class, typically there are many places where you might want to do so, just like having one database connection, one LDAP connection, one logger instance or even one configuration object for your application.<br />
+In ruby you can use the singleton module to have the job done for you, let’s take ‘application configuration’ as an example and check how we can use ruby to do the job:</p>
+{% highlight ruby  %}
+# require singleton lib
+require ‘singleton’
+class AppConfig
+  # mixin the singleton module
+  include Singleton
+  # do the actual app configuration
+  def load_config(file)
+    # do your work here
+    puts “Application configuration file was loaded from file: #{file}”
+  end
+end
+
+conf1 = AppConfig.instance
+conf1.load_config “/home/khelll/conf.yml”
+#=>Application configuration file was loaded from file: /home/khelll/conf.yml
+conf2 = AppConfig.instance
+puts conf1 == conf2
+#=>true
+# notice the following 2 lines won’t work
+# new method is private
+AppConfig.new rescue(puts $!)
+#=>private method `new’ called for AppConfig:Class
+# dup won’t work
+conf1.dup rescue(puts $!)
+#=>can’t dup instance of singleton AppConfig
+{% endhighlight %}
+<p>So what does ruby do when you include the singleton method inside your class?<br />
+1- It makes the ‘new’ method private and so you can’t use it.<br />
+2- It adds a class method called instance that instantiates only one instance of the class.<br />
+So to use ruby singleton module you need two things:<br />
+1- Require the lib ‘singleton’ then include it inside the desired<br />
+class.<br />
+2- Use the ‘instance’ method to get the instance you need.</p>

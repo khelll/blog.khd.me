@@ -1,0 +1,157 @@
+---
+layout: single
+title: Ruby reflection 2
+date: 2008-12-26 23:00:04.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- Ruby
+tags:
+- metaprogramming
+- reflection
+- Ruby
+
+---
+<p>This is the second post related to ruby's reflection API, the <a href="/2008/12/19/ruby-reflection">previous post</a> was an extensive intro to this topic. While the current one will be lighter somehow, it would require you to focus a bit more on the content.<br />
+Here we go:</p>
+<h3>Setting, getting and removing instance variables :</h3>
+{% highlight ruby  %}
+# Define a simple class M
+class M ; end #=> nil
+
+m = M.new #=> #<m:0xb764b7e0>
+
+# Set an attribute i with value 5, the attribute name should be a symbol prefixed with @
+m.instance_variable_set :@i , 5 #=> 5 
+
+# This will never work cause no attribute reader is defined for 'i'
+m.i #=>NoMethodError: undefined method `i' for #<M:0xb764b7e0 @i=5> from (irb):4
+
+# Get it the right way!
+m.instance_variable_get :@i #=> 5
+</m:0xb764b7e0>{% endhighlight %}
+<p>The code above could be written in a simpler way, let's define another attribute 'v' for example :</p>
+{% highlight ruby  %}
+# Use class_eval , and pass it a block of code :
+M.class_eval { attr_accessor :v} #=> nil
+
+# Set and get the attribute v
+m.v = 8 #=> 8
+m.v #=> 8
+{% endhighlight %}
+<p>Now, let's undefine the instance variable 'i' </p>
+{% highlight ruby  %}
+m.remove_instance_variable :@i  #=>NoMethodError: private method `remove_instance_variable' called for #<M:0xb767d4c0 @v=8  from (irb):29
+
+# Opps, a private method! let's bypass that with instance_eval
+m.instance_eval{remove_instance_variable :@i} #=> 5      ,
+
+# Could be accomplished with :send
+m.send :remove_instance_variable , :@i #=>5
+m.i #=> nil
+{% endhighlight %}
+<h3>Setting, getting and removing class variables :</h3>
+<p>As instance_variable_get and instance_variable_set, there are another variations applied to class variables, but unfortunately they are private in ruby 1.8, so let's use class_eval to bypass that:</p>
+{% highlight ruby  %}
+M.class_eval {class_variable_set :@@ci ,1} #=> 1
+M.class_eval {class_variable_get :@@ci} #=> 1
+M.class_eval {remove_class_variable :@@ci } #=> 1
+{% endhighlight %}
+<h3>Setting, getting and removing constants :</h3>
+<p>How about constants? </p>
+{% highlight ruby  %}
+M.const_set :CON , "I'm a constant" #=> "I'm a constant"
+M.const_get :CON #=> "I'm a constant"
+M.const_defined? :CON #=> true
+
+
+# Let's remove it with "send" method
+M.send :remove_const , :CON #=> "I'm a constant"
+M.const_defined? :CON #=> false
+{% endhighlight %}
+<h3>define_method</h3>
+<p>Now let's move to a new topic:<br />
+Define a method dynamically using <a href="http://www.ruby-doc.org/core/classes/Module.html#M001677">define_method</a>:<br />
+As the API tells :</p>
+<blockquote><p>Defines an instance method in the receiver. The method parameter can be a Proc or Method object. If a block is specified, it is used as the method body. This block is evaluated using instance_eval, a point that is tricky to demonstrate because define_method is private.</p></blockquote>
+{% highlight ruby  %}
+# define_method is a private method, that's why we use the 'class_eval' method
+String.class_eval {define_method(:len){length}} #=> #<Proc:0xb7635e68@(irb):17>
+"how much long am I?".len #=> 19
+
+# You can use the 'send' method instead of 'class_eval', notice how we are sending a Proc object to define_method
+String.send :define_method,:len2,lambda {length}
+"how much long am I?".len2 #=> 19
+{% endhighlight %}
+<p>When using a block, the block params will be the method params:</p>
+{% highlight ruby  %}
+String.class_eval{define_method(:part){|s,e| self[s,e] } } #=> #<Proc:0xb7699364@(irb):14>
+"hello world!".part(1,4) #=> "ello"
+{% endhighlight %}
+<p>Let's use it to redefine the 'attr_access' in another way rather than the way that was defined in the <a href="/2008/12/19/ruby-reflection">previous post</a></p>
+{% highlight ruby  %}
+class Class
+  def attr_access(*attrs)
+    attrs.each do |attr|
+      define_method :"#{attr}=" do |value|
+        instance_variable_set("@#{attr}",value) 
+      end
+
+      define_method :"#{attr}" do
+        instance_variable_get "@#{attr}"
+      end
+    end
+  end
+end
+{% endhighlight %}
+<p>One limitation to 'define_method' is that: it always creates instance methods, thus if we want to use it to define class methods, then we need to invoke it on the singleton class, let's define the 'cattr_access' method:</p>
+{% highlight ruby  %}
+class Class
+   def cattr_access(*attrs)
+    singleton_class = class << self; self; end
+    attrs.each do |attr|
+      singleton_class.class_eval do 
+        define_method :"#{attr}=" do |value|
+          class_variable_set("@@#{attr}",value)
+        end
+        define_method :"#{attr}" do
+          class_variable_get "@@#{attr}"
+        end
+      end
+    end
+  end
+end
+{% endhighlight %}
+<p>Notice how i defined the singleton_class as a local variable, it could be defined using a method, just like what we did in the previous post, however, notice: how complex it became to use the define_method to define a class method, i wouldn't encourage at all such a complexity.</p>
+<h3>Undefining methods</h3>
+<p>How about undefining methods? That can be accomplished in 2 ways: either by using the 'undef' statement, or using the private 'undef_method' method:</p>
+{% highlight ruby  %}
+String.class_eval{undef :len} #=> nil
+String.send :undef_method ,:len2 #=> String
+{% endhighlight %}
+<h3>Alias chaining</h3>
+<p>One last thing that deserves mentioning here: is the 'alias_method', it's being used to have alias chaining:<br />
+1- Copy the original method and give it an alias to be used later.<br />
+2- Create a new method with the same name of the original one, do whatever changes you need, and use the alias to invoke the original method somewhere inside the new one.<br />
+Before i show you the example i have to mention the ruby statement 'alias' which can be used as 'alias_method' :</p>
+{% highlight ruby  %}
+# I want to modify the 'puts' method to make it more expressive, at least for me!
+#' puts' is defined in Kernel module.
+# Copy the method "puts", and assign it a new name: "original_puts"
+alias :original_puts :puts #=> same as doing:   Kernel.send :alias_method ,:original_puts ,:puts
+
+# Now define the method again, and use the original method functionality to help expressing the new functionality. 
+def puts(*args)
+   args.each_with_index do |arg,index|
+  original_puts "value of parameter #{index+1} =>  #{arg}"
+   end
+end
+
+puts 1,2,3
+#value of parameter 1 =>  1
+#value of parameter 2 =>  2
+#value of parameter 3 =>  3
+{% endhighlight %}
+<p>I hope you liked this post, please don't hesitate to notify me about hidden mistakes or suggest new stuff.<br />
+I'll blog on using ruby's hooks(callbacks) in the next blog post, stay in touch.....</p>

@@ -1,0 +1,113 @@
+---
+layout: single
+title: Ruby introspection 2
+date: 2008-12-06 10:24:04.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- metaprogramming
+- Ruby
+tags:
+- introspection
+- metaprogramming
+- Ruby
+
+---
+<p>I wanted to start blogging on ruby reflection api, but i just realized that i have to give a second part of my previous article on <a href="/2008/12/05/ruby-introspection">ruby introspection </a> .<br />
+So here we go:</p>
+{% highlight ruby  %}
+s = ''
+#  s.is_a? String, this is the same!
+String === s
+
+# Determines whether the object has a public or protected method with the specified name.
+s.respond_to? :slice #=>true
+
+# Or
+String.respond_to? :include #=> false
+
+# Passes true as the second argument to check private methods as well.
+String.respond_to? :include , true #=> true
+
+# Check whether some module includes another
+module M1 ; end
+module M2 ; include M1 ; end
+M2.include? M1 #=> true
+
+# Check whether instance variable is defined or not.
+d=Date.new
+d.instance_variables #=> ["@sg", "@of", "@ajd"]
+d.instance_variable_defined? "@of" #=>true
+
+# I have to clarify this, a note for the previous post:
+# obj.public_methods(all=true) ,returns the list of public methods accessible to obj. If the all parameter is set to false, inherited methods will be excluded.  
+# obj.protected_methods(all=true),returns the list of protected methods accessible to obj. If the all parameter is set to false, inherited methods will be excluded.  
+# obj.private_methods(all=true),returns the list of private methods accessible to obj. If the all parameter is set to false, inherited methods will be excluded.
+# Ex:
+d.public_methods #=> [">>", "between?", "h!", "methods", "send", "ctime", "history_write", "year", "h", "taint", "to_enum", "instance_variable_defined?", "history", "ld", "_dump","q", "singleton_methods", "instance_eval", "os?", "wday", "enum_for", "nil?", "succ", "pretty_print_cycle", "asctime", "po", "protected_methods", "instance_exec", "start", "tainted?", "ns?", "handling_jruby_bug", "new_start", "yday", "untaint", "instance_of?", "equal?", "taguri", "pretty_print", "julian?", "step", "amjd","hash", "poc", "private_methods", "jd", "newsg", "taguri=", "history_to_vi", "pretty_print_instance_variables", "ajd", "italy", "kind_of?", "freeze", "eql?", "next", "to_yaml_style", "id", "sg", "public_methods", "hvi", "quiet", "england", "is_a?", "mday", "tap", "type", "ri", "to_yaml_properties", "+", "instance_variables", "__id__", "frozen?", "-", "julian", "pretty_inspect", "to_a", "cwyear", "respond_to?", "upto", "display", "history_do", "day", "method", "class", "verbose", "gregorian?", "downto", "mjd", "strftime", "<=>", "instance_variable_get", "==", "__send__", "leap?", "===", "gregorian", "pretty_print_inspect", "extend", "to_s","cweek", ">=", "v", "mon", "<=", "clone", "to_yaml", "=~", "instance_variable_set", "<", ">", "cwday", "inspect", "day_fraction", "month", "dup", "object_id", "<<"]
+
+d.public_methods(false) #=> ["jd", "month", "_dump", "ctime", "ld", "cweek", "succ", "to_s", "step", "day", "gregorian?", "hash", "ajd", "julian", "+", "yday", "taguri", "os?", "strftime", "italy", "downto", "-", "eql?", "sg", "year", "asctime", "leap?", "taguri=", "inspect", "amjd", "cwday", "to_yaml", "mon", "<<", "gregorian", "newsg", ">>", "start", "cwyear", "day_fraction", "mday", "ns?", "mjd", "england", "upto", "wday", "<=>", "julian?", "new_start", "===", "next"]
+
+#Check if a method is defined
+String.method_defined? :slice! # => true 
+ 
+# Check if public method is defined?
+String.public_method_defined? :upcase     # => true
+
+# Check if protected method is defined?
+String.protected_method_defined? :downcase  # => false 
+
+# Check if private method is defined?
+String.private_method_defined? :initialize # => true 
+
+# Check local variables
+local_variables
+
+# Check class variables
+class One ; @@var1 = 1 ; end
+class Two < One ; @@var2 = 2 ; end
+One.class_variables   #=> ["@@var1"]
+Two.class_variables   #=> ["@@var2", "@@var1"]
+
+# Check constants
+Math.constants #=> ["PI", "E"]
+
+# Check global variables
+global_variables #=> ["$fileutils_rb_have_lchmod", "$binding", "$-w", "$:", "$.", "$KCODE", "$-F", "$*", "$stderr", "$,", "$`", "$-p", "$\"", "$$", "$<", "$@", "$-v", "$-i", "$deferr", "$\", "$=", "$;", "$PROGRAM_NAME", "$stdout", "$&", "$fileutils_rb_have_lchown", "$-d", "$LOAD_PATH", "$-a", "$VERBOSE", "$FILENAME", "$defout", "$-0", "$+", "$0", "$stdin", "$~", "$DEBUG", "$-I", "$_", "$-K", "$>", "$/", "$'", "$-l", "$LOADED_FEATURES", "$?", "$SAFE", "$!"]
+
+# How to get the name of the current method?
+# Add this snippet of code to your logic somewhere
+
+module Kernel
+  private
+  # Defined in ruby 1.9
+  unless defined?(__method__)
+    def __method__
+      caller[0] =~ /`([^']*)'/ and $1
+    end
+  end
+end
+{% endhighlight %}
+<p>Also i strongly recommend that you look at the <a href="http://www.ruby-doc.org/core/classes/ObjectSpace.html">ObjectSpace</a> module which contains a number of routines that interact with the garbage collection facility and<strong> allow you to traverse all living objects with an iterator</strong>, however this is a little example taken from the official api documentation :</p>
+{% highlight ruby  %}
+#ObjectSpace.each_object([module]) {|obj| ... } => fixnum
+#Calls the block once for each living, nonimmediate object in this Ruby process. If module is specified, calls the block for only those classes or modules that match (or are a subclass of) module. Returns the number of objects found. Immediate objects (Fixnums, Symbols true, false, and nil) are never returned. In the example below, each_object returns both the numbers we defined and several constants defined in the Math module.
+   
+a = 102.7
+b = 95       # Won't be returned
+c = 12345678987654321
+count = ObjectSpace.each_object(Numeric) {|x| p x }
+puts "Total count: #{count}"
+
+#=>12345678987654321
+#102.7
+#2.71828182845905
+#3.14159265358979
+#2.22044604925031e-16
+#1.7976931348623157e+308
+#2.2250738585072e-308
+#Total count: 7
+{% endhighlight %}
+<p>Also if you feel like you are eager to see low level introspection , then check this <a href="http://eigenclass.org/hiki/class+hierarchy+introspection+evil.rb">great post</a>. </p>
+<p>In my next article, am going to blog on ruby reflection api , hope to finish it soon ;)</p>

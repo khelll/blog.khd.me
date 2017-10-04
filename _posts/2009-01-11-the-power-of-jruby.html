@@ -1,0 +1,87 @@
+---
+layout: single
+title: The power of JRuby
+date: 2009-01-11 00:08:09.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- Java
+- JRuby
+- Ruby
+tags:
+- Java
+- JRuby
+- Ruby
+
+---
+<p>It's true that I'm not the qualified guy to talk about Java's power,as it has been 2 years since i last practiced it, but i feel like i have to communicate my thoughts to the people that didn't give JRuby a trial yet, and why they should do so.<br />
+If you never worked with Java before, then don't panic, cause in these article i would list several reasons why JRuby is so powerful even if you don't know anything about Java.<br />
+Lemme start listing all the points that makes me feel the power of JRuby; the order here is irrelevant as i do believe that every point listed bellow has somehow the same rank that others might have:</p>
+<p>1- Mixing the power of Java with the power of Ruby.<br />
+2- A faster(if not the fastest) Ruby implementation.<br />
+3- Native Threads.<br />
+4- Support for Foreign Function Interface(FFI).<br />
+5- Make use of the JVM (HotSpot).<br />
+6- Have a great community and support.</p>
+<h2>Mixing the power of Java with the power of Ruby</h2>
+<p>There are thousands of Java packages that are ready for you to use, and according to <a href="http://www.tiobe.com/index.php/content/paperinfo/tpci/index.html">TIOBE</a>, Java is continuing to be the most popular language, so why don't you make use of the existing Java packages, and use them inside your code?<br />
+For example, you can use the swing package(a very powerful GUI package) inside your ruby code, the following snippet of code is taken from the samples folder in the JRuby distribution:</p>
+{% highlight ruby  %}
+# Import Java packages
+include Java
+
+import javax.swing.JFrame
+
+frame = JFrame.new("Hello Swing")
+button = javax.swing.JButton.new("Klick Me!")
+button.add_action_listener do |evt|
+  javax.swing.JOptionPane.showMessageDialog(nil, <<EOS)
+<html>Hello from <b><u>JRuby</u></b>.<br />
+Button '#{evt.getActionCommand()}' clicked.
+EOS
+end
+
+# Add the button to the frame
+frame.get_content_pane.add(button)
+
+# Show frame
+frame.set_default_close_operation(JFrame::EXIT_ON_CLOSE)
+frame.pack
+frame.visible = true
+</html>{% endhighlight %}
+<p>You can also reference ruby code inside Java code, examples could be found <a href="http://wiki.JRuby.org/wiki/Direct_JRuby_Embedding">here</a>.</p>
+<h2>A faster(if not the fastest) Ruby implementation</h2>
+<p>JRuby team consider it a bug if they are slower on something than <a href="http://en.wikipedia.org/wiki/Ruby_MRI">MRI</a>, thus they keep enhancing the performance of JRuby.<br />
+According to Antonio Cangiano, the guy behind the great ruby shootout <a href="http://antoniocangiano.com/2008/12/09/the-great-ruby-shootout-december-2008/">here</a> and <a href="http://antoniocangiano.com/2008/12/10/reflections-on-the-ruby-shootout/">here</a>:</p>
+<blockquote><p>Ruby 1.9 and JRuby are very close, respectively 2.5 and 1.9 faster than Ruby 1.8.7 (from source) on these benchmarks.</p></blockquote>
+<p>Surprisingly JRuby was slower than ruby 1.8.6 last year, but now it's competeing 1.9 in terms of speed.<br />
+<a href="Antonio Cangiano, Software Engineer">Charles Nutter</a> the JRuby team leader commented on that saying:</p>
+<blockquote><p>I'm looking forward to seeing another update once JRuby finishes 1.9 support, since these JRuby numbers don't reflect execution and library optimizations 1.9 provides. I expect that JRuby in 1.9 mode will perform much closer to Ruby 1.9.</p>
+<p>Until then, it's good to hear we're the fastest 1.8 implementation. Thanks again!</p></blockquote>
+<h2>Native Threads</h2>
+<p>The current ruby interpreter which is called MRI supports <a href="http://en.wikipedia.org/wiki/Green_threads">green threads</a>, as opposed to JRuby which supports native threads.<br />
+Green threads are managed by VM, not by the operating system, and thus, by using them you lose a significant power called "<a href="http://en.wikipedia.org/wiki/Concurrency_(computer_science)">concurrency</a>" which is available to multi core processors, that's because the VM will continue to use one core to serve the whole threads, as opposed to native threads which will use the full power of multi core processor, by being assigned to the available cores.<br />
+In general an application might be IO-bounded(lots of IO operations, like logging and database related ones) or CPU-bounded(lots of computation), and while green threads are useful for the IO-bounded applications, they are not useful for the CPU-bounded ones.<br />
+A CPU-bonded applications consumes the CPU, and thus you can increase the speed of your program by having multi core processor, but thus you need native threaded applications, to make use of the available cores.<br />
+JRuby comes to rescue as it supports native threads, and thus you have full concurrency when you have multi core processors.</p>
+<h2>Support for Foreign Function Interface(FFI)</h2>
+<p>According to wikipedia a <a href="http://en.wikipedia.org/wiki/Foreign_function_interface">Foreign Function Interface</a> (or FFI) is :</p>
+<blockquote><p>A mechanism by which a program written in one programming language can call routines or make use of services written in another. </p></blockquote>
+<p>Why would a one need that? well many gems that we use like <a href="http://rmagick.rubyforge.org/">Rmagic</a>,<a href="http://hpricot.com/hpricot_rdoc154/index.html">Hpricot</a> and <a href="http://ruby-prof.rubyforge.org/">ruby-prof</a> uses C extensions, either because of performance or because of the ready existing libs related matters.<br />
+Well that was causing problems for JRuby users as they couldn't run those gems that have C extensions, and also for gem developers who had to maintain 2 versions of such gems to let them work for both MRI and JRuby.<br />
+That was a kind of disaster till Charles <a href="http://blog.headius.com/2008/10/ffi-for-ruby-now-available.html">announced</a> that FFI is available for ruby.<br />
+So now when you need to have C code inside ruby, then it's highly recommended to use the <a href="http://kenai.com/projects/ruby-ffi">FFI gem</a> to save yourself having dual code, and also to make your code work on different ruby implementations.</p>
+<h2>Make use of the JVM (HotSpot)</h2>
+<p>Since Sun has <a href="http://Java.sun.com/Javase/technologies/hotspot/">announced</a> it's open source strategy, and lots of optimization work was done for the <a href="http://en.wikipedia.org/wiki/HotSpot">JVM(HotSpot)</a>, the reason behind these optimizations was the fact that many languages is adopting Java to be the hosting language for them, and thus having JVM as an open source technology helped to optimize it to better serve these languages. Some of these languages are: <a href="http://jruby.codehaus.org/">JRuby</a>, <a href="http://groovy.codehaus.org/">Groovy</a>, <a href="http://www.scala-lang.org/">Scala</a> and <a href="http://clojure.org/">Clojure</a>.<br />
+So you might be wondering "How this will affect me?", actually it will affect you indirectly cause once you have a better JVM, it means you have a faster JRuby implementation, and a better management for your memory, as the JVM is considered to have the best garbage collector.<br />
+Also you might be able one day to work with other languages(Clojure for example) directly in your ruby code.</p>
+<h2>Have a great community and support</h2>
+<p>JRuby has a very nice community, and the guys behind it are very helpful and open to different opinions, just log to #JRuby channel on the FreeNode on IRC, or subscribe to <a href="mailto:user@JRuby.codehaus.org">mailing list</a> and send your questions, and you will get the minimum support to let you go.<br />
+What i like about this community is their love to the Ruby community, they like to help any rubiest, they even worked with Merb(merb 2 is the core of Rails 3) guys to provide a better performance for merb users.<br />
+The current active JRuby contributers are: <a href="http://blog.headius.com/">Charles Nutter</a>, <a href="http://www.bloglines.com/blog/ThomasEEnebo">Tom Enebo</a>, <a href="http://wmeissner.blogspot.com">Wayne Meissner</a>, Marcin Mielzynski and <a href="http://blog.nicksieger.com/">Nick Sieger</a>, and here some of the past contributers: <a href="http://olabini.com/blog/">Ola Bini</a> and <a href="http://blog.emptyway.com/">Vladimir Sizikov</a></p>
+<p>I hope that i could deliver some of the good points about JRuby, and would like really to have your comments, and what might be also missing from those points. You can find bellow a list of references.</p>
+<h3>References</h3>
+<p>*<a href="http://rubyconf2008.confreaks.com/jruby-what-why-howtry-it-now.html">JRuby: What, Why, How...Try It Now</a> by Charles Nutter and Tom Enebo</p>
+<p>*<a href="http://www.infoq.com/presentations/nutter-jruby-jvm-lang-summit">JRuby: The Pain of Bringing an Off-Platform Dynamic Language to the JVM </a> by Charles Nutter</p>
+<p>*<a href="http://blog.headius.com/">Charles Nutter blog</a></p>

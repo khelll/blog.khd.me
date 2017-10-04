@@ -1,0 +1,59 @@
+---
+layout: single
+title: Ruby 1.9 Encoding Fun
+date: 2009-07-13 05:52:23.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- Ruby
+tags:
+- Encoding
+- fun
+- Ruby
+
+---
+<p>Ruby 1.9 has a great support for encoding, <a href="http://blog.nuclearsquid.com/writings/ruby-1-9-encodings">this</a> post covers that for a big deal, however with this support out of the box, things like <a href="http://www.oreillynet.com/ruby/blog/2007/10/fun_with_unicode_1.html">this</a> becomes easier, just note the source code is not limited to few types of encoding just like Ruby 1.8.</p>
+{% highlight ruby  %}
+# coding: UTF-8
+
+π = Math::PI
+
+def √(x) 
+  Math.sqrt(x)
+end
+
+def ∑(r)
+  r.inject{|sum,val| sum + (block_given? ? yield(val) : val)}
+end 
+
+def ∏(r)
+  r.inject(1){|mul,val| mul * (block_given? ? yield(val) : val)}
+end 
+
+def ¬(x)
+  !x
+end  
+
+p π #=> 3.14159265358979
+
+p √(9) #=> 3.0
+
+range = 1..6 
+
+p ∑(range)  #=> 21
+
+p ∑(range){|x| x**2}  #=> 91
+
+p ∏(range)  #=> 720
+
+p ∏(range){|x| x**2}  #=> 518400
+
+p ¬(5>0) #=> false
+{% endhighlight %}
+<p><strong>Please note that previous example could work also with Ruby 1.8 using the flag<code> -Ku</code>, I just wanted to explain the idea of using different types of encoding in Ruby 1.9.</strong></p>
+<p>So all you need to do is to set whatever encoding you want for your source code at the very beginning of the file:</p>
+{% highlight ruby  %}
+# coding: UTF-8
+{% endhighlight %}
+<p>Many other things can be done, just give yourself a moment and think what you can do!</p>

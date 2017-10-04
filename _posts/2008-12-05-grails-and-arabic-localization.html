@@ -1,0 +1,40 @@
+---
+layout: single
+title: Grails and Arabic localization
+date: 2008-12-05 08:08:29.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- Grails
+tags:
+- arabic
+- Grails
+- localization
+
+---
+<p>A little problem that i faced with grails , was setting the locale dynamically, i followed this <a href="http://www.grassr.com/wordpress/?p=12">nice article</a> , and here is how i could manage it :</p>
+<ol>
+<li>I made a new file called messages_ar.properties that contains the arabic localization under the i18n folder.</li>
+<li>I made a simple beforeinterceptor:
+{% highlight groovy  %}def beforeInterceptor = {
+        def key = "org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER"
+        def localeResolver = request.getAttribute(key)
+        localeResolver.setLocale(request, response, new Locale("ar","JO"))
+    }{% endhighlight %}
+</li>
+</ol>
+<p>Of course you can use <a href="http://grails.org/Filters">grails/Filters</a> to save yourself repeating the same code in every controller.</p>
+<p>However what i want to mention is the locale object, which in case of Arabic localization, was seeking  the country argument ( "JO" in our case) :</p>
+{% highlight groovy  %}
+new Locale("ar","JO")
+{% endhighlight %}
+<p>While for other localizations like German one it doesn't seek this second argument, so this snippet of code will work for them :)</p>
+{% highlight groovy  %}
+new Locale("de")
+{% endhighlight %}
+<p>Also you can change this country argument value to match this rule :</p>
+<blockquote><p>
+The country argument is a valid ISO Country Code. These codes are the upper-case, two-letter codes as defined by ISO-3166. You can find a full list of these codes at a number of sites, such as:<br />
+http://www.chemie.fu-berlin.de/diverse/doc/ISO_3166.html</p></blockquote>
+<p>I hope that was helpful :) , enjoy!</p>

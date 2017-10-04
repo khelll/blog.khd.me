@@ -1,0 +1,186 @@
+---
+layout: single
+title: Ruby callbacks
+date: 2008-12-28 02:26:14.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- Ruby
+tags: []
+
+---
+<p>This blog post is about ruby's callbacks(hooks): what are the available ones,and how practically we can use them? </p>
+<h3>method_missing</h3>
+<p><a href="http://www.ruby-doc.org/core/classes/Kernel.html#M005951">obj.method_missing(symbol [, *args] ) => result</a> might be the most famous hook in ruby, and is being used a lot by ruby developers : </p>
+<blockquote><p>Invoked by Ruby when obj is sent a message it cannot handle. symbol is the symbol for the method called, and args are any arguments that were passed to it. By default, the interpreter raises an error when this method is called. However, it is possible to override the method to provide more dynamic behavior.</p></blockquote>
+<p>Here is a simple example where the user can mix colors using the mix method :</p>
+{% highlight ruby  %}
+class Colors 
+  def mix(*colors)
+    if block_given?
+      yield(colors)
+    else
+      puts "Mixing: #{colors.join ' + '}"
+    end
+  end
+end
+c = Colors.new
+c.mix "orange" , "cyan" #=> Mixing: orange + cyan
+c.mix("green","red"){|colors| puts "A nice mix: #{colors.join(' + ')}"} #=> A nice mix: green + red
+{% endhighlight %}
+<p>Now, how about letting the user do something like: 'c.greenAndBlue'  or 'c.grayAndYellow' ?, let's see how to do so:</p>
+{% highlight ruby  %}
+class Colors 
+  def mix(*colors)
+    if block_given?
+      yield(colors)
+    else
+      puts "Mixing: #{colors.join ' + '}"
+    end
+  end
+
+  def method_missing(*args, &block)
+    # First arg is a symbol representing the name of the method.
+    method_name = args.shift
+    # Extract the colors from the method name and collecting them in an array 
+    # This is a very basic treatment.
+    colors = method_name.id2name.split(/and/i).collect{|color| color.downcase}
+    # Send the colors and the block to 'mix' method.
+    self.send :mix, colors ,&block
+  end
+end
+
+c = Colors.new
+c.mix "orange" , "cyan" #=> Mixing: orange + cyan
+c.mix("green","red"){|colors| puts "A nice mix: #{colors.join(' + ')}"} #=> A nice mix: green + red
+c.greenAndBlue #=> Mixing: green + blue 
+c.greenAndWhiteAndBrown #=> Mixing: green + white + brown
+c.grayAndYellow{|colors| puts "A nice mix: #{colors.join(' + ')}"} #=> A nice mix: gray + yellow
+{% endhighlight %}
+<h3>const_missing</h3>
+<p><a href="http://www.ruby-doc.org/core/classes/Module.html#M001716">const_missing</a> : invoked when a reference is made to an undefined constant.</p>
+<p>I will use it to show the user a more informative message when he tries to use a non existing constant:</p>
+{% highlight ruby  %}
+class Colors
+  RED = "#FF0000"
+  GREEN = "#00FF00"
+  BLUE = "#0000FF"
+  
+  def self.const_missing(name)
+    puts "Sorry the color '#{name}' is undefined; #{constants.join ","} are the only available colors."
+  end
+end
+
+Colors::Yellow #=> Sorry the color 'Yellow' is undefined; BLUE,GREEN,RED are the only available colors.
+{% endhighlight %}
+<h3>included and extended</h3>
+<p><a href="http://www.ruby-doc.org/core/classes/Module.html#M001683">included</a> and <a href="http://www.ruby-doc.org/core/classes/Module.html#M001685">extended</a> are fired when the module is included or extended :</p>
+{% highlight ruby  %}
+module A
+  def self.included(base)
+    puts "#{self} included in #{base}"
+  end
+     
+  def self.extended(base)
+    puts "#{self} extended in #{base}"
+  end
+end
+
+class B
+  include A #=> A included in B
+end
+
+class C
+  extend A #=> A extended in C
+end
+{% endhighlight %}
+<p>However let's move to a more practical use, if u look at the module documentation, you will find the following definition: </p>
+<blockquote><p>A Module is a collection of methods and constants. The methods in a module may be instance methods or module methods.<strong> Instance methods appear as methods in a class when the module is included, module methods do not.</strong></p></blockquote>
+<p>Well, as you can see, you can't include the module methods inside your class, then what to do?<br />
+I saw some people use a nice trick to do so, they split their module into 2 inner modules, one called InstanceMethods and the other called SingletonMethods, then they include the former, and extend the later, look at the following snippet of code :</p>
+{% highlight ruby  %}
+module Greetings
+  # When a class is including this module
+  def self.included(base)
+    # include: will mix the methods in the caller as instance ones.
+    # include: is a private method that's why we are using 'send'
+    base.send :include, InstanceMethods
+    # extend: will mix the methods in the caller as class ones.
+    # extend: is a private method that's why we are using 'send'
+    base.send :extend, SingletonMethods
+  end
+  
+  # Put all the the methods that should be mixed as instance ones here.
+  module InstanceMethods
+    def hello ; puts "hello" ; end
+  end
+ 
+  # Put all the the methods that should be mixed as class ones here.
+  module SingletonMethods
+    def bye ; puts "bye!" ; end
+  end
+end
+
+class Greeter
+  # The 'included' callback is getting fired now 
+  include Greetings
+end
+
+Greeter.new.hello #=>hello
+Greeter.bye #=> bye!
+{% endhighlight %}
+<h3>method_added and singleton_method_added</h3>
+<p><a href="http://www.ruby-doc.org/core/classes/Module.html#M001685">method_added</a> and <a ref="http://www.ruby-doc.org/core/classes/Object.src/M000372.html">singleton_method_added</a> are another 2 callbacks that are fired when a new instance or singleton method is added.<br />
+In the code snippet bellow, I'm <strong>trying</strong> to prevent a developer from monkey patching(reopen) my colors class: </p>
+{% highlight ruby  %}
+class Colors
+  def self.method_added(name)    
+    puts "A trial to add a new instance method: #{name}, this is not allowed." 
+    undef_method name
+  end 
+
+  def self.singleton_method_added(name)   
+    if name != :singleton_method_added
+      singleton_class = class << self; self; end
+      puts "A trial to add a new class method: #{name}, this is not allowed." 
+      singleton_class.class_eval{undef_method name}
+    end
+  end 
+end
+
+#Monkey patching 
+class Colors
+  def red ; end #A trial to add a new instance method: red, this is not allowed.
+  def self.mixer ; end #A trial to add a new class method: mixer, this is not allowed.
+end
+{% endhighlight %}
+<h3>method_removed and method_undefined</h3>
+<p><a href="http://www.ruby-doc.org/core/classes/Module.html#M001686">method_removed</a>: fired when an instance method is removed.<br />
+<a href="http://www.ruby-doc.org/core/classes/Module.html#M001687">method_undefined</a>: fired when an instance method is undefined.</p>
+<h3>singleton_method_removed and singleton_method_undefined</h3>
+<p><a href="http://www.ruby-doc.org/core/classes/Object.html#M000372">singleton_method_removed</a>: fired when a singleton method is removed.<br />
+<a href="http://www.ruby-doc.org/core/classes/Object.html#M000373">singleton_method_undefined</a>: fired when a singleton method is undefined.</p>
+<h3>inherited</h3>
+<p><a href="http://www.ruby-doc.org/core/classes/Class.html#M002812">inherited</a> is called when some class is being inherited:</p>
+{% highlight ruby  %}
+class Colors
+  def self.inherited(sub)
+    puts "class #{sub} is inheriting class #{self}"
+  end
+end
+
+class C < Colors ; end #=> class C is inheriting class Colors
+{% endhighlight %}
+<p>A practical use will be in preventing subclasses from being created : </p>
+{% highlight ruby  %}
+class Colors
+  def self.inherited(sub) 
+    raise "class #{sub} is inheriting class #{self}, inheritance is now allowed...."
+  end
+end
+
+class D < Colors ; end #=> class D is inheriting class Colors, inheritance is now allowed.... (RuntimeError)
+{% endhighlight %}
+<p>Well, that's all for this post. The next post series will be on writing internal DSLs using ruby.<br />
+See you then.....</p>

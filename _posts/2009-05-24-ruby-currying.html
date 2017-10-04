@@ -1,0 +1,86 @@
+---
+layout: single
+title: Ruby Currying
+date: 2009-05-24 20:36:46.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- Functional Programming
+- Ruby
+tags:
+- currying
+- Functional Programming
+- Ruby
+
+---
+<p><strong>Update: This post was updated to show the difference between Currying and Partial Functions.</strong><br />
+<strong>Currying</strong> is a concept in Functional Programming that's enabled by Higher-order functions. It's best described as: the ability to take a function that accepts n parameters and turns it into a composition of <code>n</code> functions each of them take 1 parameter.  Check this function <em>f</em> which takes 3 params <em>x</em>,<em>y</em>,<em>z</em></p>
+<p><code>f(x,y,z) = 4*x+3*y+2*z</code></p>
+<p>Currying means that we can rewrite the function as a composition of 3 functions(a function for each param):</p>
+<p><code>f(x)(y)(z) = 2*z+(3*y+(4*x))</code></p>
+<p>The direct use of this is what is called <strong>Partial Function</strong> where if you have a function that accepts n parameters then you can generate from it one of more functions with some parameter values already filled in.  Ruby 1.9 comes with support for currying concept(through the Proc#curry method) and this blog post is explaining how you can use it effectively.<br />
+I'm going to walk you through a simple example to explain the concept, however i need to mention few things:<br />
+1- The main example is taken from the free <a href="http://www.scala-lang.org/sites/default/files/linuxsoft_archives/docu/files/ScalaByExample.pdf">Scala By Example</a> book(First-Class Functions chapter), however i have replaced recursion calls by simple <code>upto</code> iterators.<br />
+2- In Ruby 1.9 you can use block.(*args) just like you use <code>block.call(*args)</code> or <code>block[*args]</code> in Ruby 1.8, so i'll stick to  <code>block.(*)</code> notation.<br />
+3- I could have used the <code>inject</code> method, but i preferred readability to concise code. </p>
+<p>Let's start the simple tutorial by adding three methods:<br />
+1- A method to sum all integers between two given numbers <code>a</code> and <code>b</code>.<br />
+2- A method to sum the squares of all integers between two given numbers <code>a</code> and <code>b</code>.<br />
+3- A method to to sum the powers <code>2^n</code> of all integers <code>n</code> between two given numbers <code>a</code> and <code>b</code>.</p>
+{% highlight ruby  %}
+###################################
+# Normal definitions
+###################################
+sum_ints = lambda do |a,b|
+  s = 0 ; a.upto(b){|n| s += n } ; s 
+end
+
+sum_of_squares = lambda do |a,b|
+  s = 0 ; a.upto(b){|n| s += n**2 } ;s 
+end
+
+sum_of_powers_of_2 = lambda do |a,b|
+  s = 0 ; a.upto(b){|n| s += 2**n } ; s 
+end
+
+puts sum_ints.(1,5) #=> 15
+puts sum_of_squares.(1,5) #=> 55
+puts sum_of_powers_of_2.(1,5) #=> 62
+{% endhighlight %}
+<p>Cool, however if you focus on the 3 methods, you will notice that these methods are all instances of a pattern &Sigma;f(n) for a range of  values a -> b. We can factor out the common pattern by defining a method sum:</p>
+{% highlight ruby  %}
+############################################
+# Some refactoring to make some abstraction
+# Passing the sum mechanism itself
+############################################
+
+sum = lambda do |f,a,b|
+  s = 0 ; a.upto(b){|n| s += f.(n) } ; s 
+end
+
+puts sum.(lambda{|x| x},1,5) #=> 15
+puts sum.(lambda{|x| x**2},1,5) #=> 55
+puts sum.(lambda{|x| 2**x},1,5) #=> 62
+{% endhighlight %}
+<p>Ok, but what about having the formal definitions for the 3 methods? How can we have those definitions out of the <code>sum</code> method? Well that's the use of currying and partial functions, in our case we just need to pass the first param to the <code>sum</code> method to specify what type of sum is it:</p>
+{% highlight ruby  %}
+###################################
+# More refactoring using currying
+# Currying was added to Ruby 1.9
+# Via Proc#curry
+###################################
+
+# generate the currying
+currying = sum.curry
+
+# Generate the partial functions
+sum_ints = currying.(lambda{|x| x})
+sum_of_squares = currying.(lambda{|x| x**2})
+sum_of_powers_of_2 = currying.(lambda{|x| 2**x})
+
+puts sum_ints.(1,5) #=> 15
+puts sum_of_squares.(1,5) #=> 55
+puts sum_of_powers_of_2.(1,5) #=> 62
+{% endhighlight %}
+<p>That's it! I hope I could clarify the use of currying, if not just add your comment here ;) </p>

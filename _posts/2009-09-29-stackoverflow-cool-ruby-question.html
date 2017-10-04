@@ -1,0 +1,115 @@
+---
+layout: single
+title: StackOverflow cool Ruby questions
+date: 2009-09-29 21:25:08.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- Ruby
+- Stackoverflow
+tags:
+- Ruby
+- Stackoverflow
+
+---
+<p>I have participated heavily during the last 2 weeks in answering <a href="http://stackoverflow.com/questions/tagged/ruby">Ruby tagged</a> questions on <a href="http://stackoverflow.com/">stackoverflow</a>. That took place mainly after Ryan Bates <a href="http://twitter.com/rbates/status/3270391247">tweet</a> wishing to see more Ruby developers on stackoverflow. Since then I have enjoyed reading various kinds of questions that range in level from basic to professional ones and which cover various stuff like normal questions, tricks, meta programming, best practices and language specific features.</p>
+<p>So, I'm announcing in this post an <a href="/category/stackoverflow/">endless series</a> called "Stackoverflow cool Ruby questions" which will target cool Ruby questions on stackoverflow. I strongly recommend that you visit Stackoverflow on daily basis and try to participate if you have the time, but if you don't, then I hope that you will enjoy this educational series.</p>
+<p>There are currently more than 4,640 tagged Ruby questions, I'll try to mix old + recent questions. I won't cover basic questions here unless the question gets high votes. The covered questions will be related to new, tricky and controversial topics.</p>
+<p>Please don't hesitate to give any notes regarding the idea and the way the questions are picked and presented.</p>
+<p>Let's start this series, with 3 questions for this post:</p>
+<h2>'Instance_eval' instead of 'yield(self)'</h2>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/1485186/instance-eval-within-block">Instance Eval Within Block</a></p>
+<p><strong>The question text is</strong>:</p>
+{% highlight ruby  %}
+class Builder
+    def initialize
+        @lines = []
+    end
+
+    def lines
+        block_given? ? yield(self) : @lines
+    end
+
+    def add_line( text )
+        @lines << text
+    end
+end
+{% endhighlight %}
+<p>Now, how do I change this</p>
+{% highlight ruby  %}
+my_builder = Builder.new
+my_builder.lines { |b|
+    b.add_line "foo"
+    b.add_line "bar"
+}
+p my_builder.lines # => ["foo", "bar"]
+{% endhighlight %}
+<p>Into this?</p>
+{% highlight ruby  %}
+my_builder = Builder.new
+my_builder.lines {
+    add_line "foo"
+    add_line "bar"
+}
+p my_builder.lines # => ["foo", "bar"]
+{% endhighlight %}
+<p><strong>The answer is</strong>:</p>
+{% highlight ruby  %}
+class Builder
+    def initialize
+        @lines = []
+    end
+
+    def lines(&block)
+        block_given? ? instance_eval(&block) : @lines
+    end
+
+    def add_line( text )
+        @lines << text
+    end
+end
+
+my_builder = Builder.new
+my_builder.lines {
+    add_line "foo"
+    add_line "bar"
+}
+p my_builder.lines # => ["foo", "bar"]
+{% endhighlight %}
+<p>The trick here is to use instance_eval which evaluates the passed block in the context of the current object called on.</p>
+<h2>Determining whether a variable is any one of a list of values</h2>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/1487075/ruby-shortest-most-idiomatic-way-of-determining-whether-a-variable-is-any-one-of">Shortest/most idiomatic way of determining whether a variable is any one of a list of values</a></p>
+<p><strong>The question text is:</strong></p>
+<p>This seems a ridiculously simple question to be asking, but what's the shortest/most idiomatic way of rewriting this in Ruby?</p>
+{% highlight ruby  %}
+if variable == :a or variable == :b or variable == :c or variable == :d # etc.
+{% endhighlight %}
+<p>I've previously seen this solution:</p>
+{% highlight ruby  %}
+if [:a, :b, :c, :d].include? variable
+{% endhighlight %}
+<p>but this isn't always functionally equivalent - I believe Array#include? actually looks to see if the variable object is contained in the list; it doesn't take into account that the object may implement its own equality test with def ==(other).</p>
+<p>Take, for example, Rails' <code>Mime::Type implementation: request.format == :html </code>may return true, but <code>[:html].include?(request.format)</code> will return false, as request.format is an instance of Mime::Type, not a symbol.</p>
+<p><strong>The answer</strong>:<br />
+Actually, #include? does use ==. The problem arises from the fact that if you do <code>[:a].include? foo</code>, it checks <code>:a == foo</code>, not <code>foo == :a</code>. <strong>That is, it uses the == method defined on the objects in the Array, not the variable. Therefore you can use it so long as you make sure the objects in the array have a proper == method.</strong></p>
+<p>In cases where that won't work, you can simplify your statement by removing the select statement and passing the block directly to any:</p>
+{% highlight ruby  %}
+if [:a, :b, :c, :d].any? {|f| variable == f}
+{% endhighlight %}
+<h2>Using 'instance_eval' instead of 'send'</h2>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/1485068/ruby-how-to-evalulate-multiple-methods-per-send-command">How to evaluate multiple methods per send command?</a></p>
+<p><strong>The question text is</strong>:</p>
+<p>Let's say I have an XML::Element...I want to do something like:</p>
+{% highlight ruby  %}
+my_xml_element.send("parent.next_sibling.next_sibling")
+{% endhighlight %}
+<p><strong>The answer is:</strong></p>
+<p>In your case it's better to use instance_eval</p>
+{% highlight ruby  %}
+"Test".instance_eval{chop!.chop!} #=> "Te"
+{% endhighlight %}
+<p>And for your code:</p>
+{% highlight ruby  %}
+my_xml_element.instance_eval{parent.next_sibling.next_sibling}
+{% endhighlight %}

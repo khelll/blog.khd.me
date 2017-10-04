@@ -1,0 +1,87 @@
+---
+layout: single
+title: Ruby introspection
+date: 2008-12-05 04:31:16.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- metaprogramming
+- Ruby
+tags:
+- introspection
+- metaprogramming
+- Ruby
+
+---
+<p>Hi, this is my first blog post!, i'm already done of reading <a title="groovy's introspection" href="http://noor.ojuba.org/2008/07/groovy-introspection-know-what-you-have/">this artilce</a> on groovy's lang introspection , and i wanted to submit the equivalent one for ruby, so all you need now is to fire your irb and follow me :) :</p>
+{% highlight ruby  %}
+
+# Whats is your class?
+
+a = 5
+b = "Hello"
+
+# Whats is your class?
+p "Class of a : #{a.class} ,class of b : #{b.class}" #=>"Class of a : Fixnum ,class of b : String"
+
+# Whats is your super class?
+p "Super class of a : #{a.class.superclass} ,super class of b : #{b.class.superclass}" #=>"Super class of a : Integer ,super class of b : Object"
+
+# Is a.class = Fixnum ?
+a.instance_of? Fixnum #=> true
+
+# Is a of type Integer (does it have Integer in it's class hierarchy)?
+a.is_a? Integer #=> true
+
+# Or this way:
+a.kind_of? Integer #=> true
+
+# Introspection, know all the details about classes :
+# List all ancestors(modules and classes) of a class
+String.ancestors.each{|a| p a}
+
+# List all modules included in a class
+String.included_modules.each{|m| p m} 
+
+# Check class hierarchy
+String < Comparable #=> true
+String < Integer #=> nil  , strings r not integers
+Object < String #=> false , Not all objects are strings
+
+# List ancestors of class type
+String.ancestors.select{|a| a.class==Class}.each{|c| p c}
+
+# List all methods available to an object
+b.methods.each{|m| p m}
+
+# Get public instance methods
+String.public_instance_methods.each{|m| p m}
+
+# Get protected instance methods
+String.protected_instance_methods.each{|m| p m}
+
+# Get private instance methods
+String.private_instance_methods.each{|m| p m}
+
+# Get class singleton methods
+String.singleton_methods{|m| puts m}
+
+# Get the instance variables of an object
+d = Date.new
+d.instance_variables.each{|i| p i}
+
+# Get public instance methods
+d.public_methods.each{|m| puts m}
+
+# Get protected instance methods
+d.protected_methods.each{|m| puts m}
+
+# Get private instance methods
+d.private_methods.each{|m| puts m}
+
+# Get instance singleton methods
+d.singleton_methods.each{|m| puts m}
+{% endhighlight %}
+<p>As for the Dynamic method calling introduced in that article , <a title="ruby dynamic method calling" href="/2008/12/05/grails-and-arabic-localization">check this post</a>  ;)</p>
+<p>*Update : Check <a href="/2008/12/06/ruby-introspection-2">the second part article</a> of ruby introspection, for more info on this topic.</p>

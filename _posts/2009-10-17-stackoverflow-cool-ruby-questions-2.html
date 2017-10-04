@@ -1,0 +1,253 @@
+---
+layout: single
+title: StackOverflow cool Ruby questions 2
+date: 2009-10-17 07:58:44.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- Ruby
+- Stackoverflow
+tags:
+- Ruby
+- Stackoverflow
+
+---
+<p>Welcome in this second post of this <a href="/category/stackoverflow/">series</a>. Just before I list the questions of this one, I want to mention 2 things:</p>
+<ul>
+<li>You can follow StackOverflow tagged Ruby questions on twitter using the user: <a href="http://twitter.com/sof_ruby">sof_ruby</a> </li>
+<li>Some ppl feel shy to ask or even to answer, my (little) experience in life taught me that If you don't ask, you don't learn. If you don't participate, you don't learn. On the other side that's the benefit of pair programming, ain't it?</li>
+</ul>
+<p>Now let's proceed to questions:</p>
+<h2>Hash Autovivification</h2>
+<p>Hash Autovivication in simple words is the ability to do things like:</p>
+{% highlight ruby  %}
+a={}
+a['b']['c']['d']['e']='f'
+{% endhighlight %}
+<p>The cool idea here is that all intermediate-level hashs will be created automatically.<br />
+We can't do that directly in Ruby, a statement like the previous one will issue an error : <code>NoMethodError: undefined method `[]' for nil:NilClass<br />
+</code></p>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/1485186/instance-eval-within-block">ruby hash autovivification (facets)</a></p>
+<p><strong>The question text is</strong>:<br />
+Here is a clever trick to enable hash autovivification in ruby (taken from facets):</p>
+{% highlight ruby  %}
+# Monkey patching Hash class:
+# File lib/core/facets/hash/autonew.rb, line 19
+  def self.autonew(*args)
+    leet = lambda { |hsh, key| hsh[key] = new( &leet ) }
+    new(*args,&leet)
+  end
+{% endhighlight %}
+<p>Although it works (of course), I find it really frustrating that I can't figure out how this two liner does what it does.</p>
+<p><strong>The answer is</strong>:<br />
+The standard <a href="http://ruby-doc.org/core/classes/Hash.html#M002840">new method for Hash</a> accepts a block. This block is called in the event of trying to access a key in the Hash which does not exist. The block is passed the Hash itself and the key that was requested (the two parameters) and should return the value that should be returned for the requested key.</p>
+<p>You will notice that the leet lambda does 2 things. It returns a new Hash with leet itself as the block for handling defaults. This is the behaviour which allows autonew to work for Hashes of arbitrary depth. It also assigns this new Hash to hsh[key] so that next time you request the same key you will get the existing Hash rather than a new one being created.</p>
+<p>So: </p>
+{% highlight ruby  %}
+a = Hash.autonew
+a['b']['c']['d']['e']='f' #=> "f"
+a.inspect #=> {"b"=>{"c"=>{"d"=>{"e"=>"f"}}}}
+{% endhighlight %}
+<h2>Class instance variables</h2>
+<p>This answer of this one is easy, but the idea of <strong>Class instance variables</strong> is what matters.</p>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/1548661/total-newbie-instance-variables-in-ruby">Total newbie: Instance variables in ruby?</a></p>
+<p><strong>The question text is</strong>:<br />
+Pardon the total newbiew question but why is <code>@game_score</code> always nil?</p>
+{% highlight ruby  %}
+class Bowling
+  @game_score = 0
+    def hit(pins)
+      @game_score = @game_score + pins
+    end
+
+    def score
+      @game_score
+    end
+end
+{% endhighlight %}
+<p><strong>The answer is</strong>:<br />
+Because you don't have</p>
+{% highlight ruby  %}
+def initialize
+  @game_score = 0
+end
+{% endhighlight %}
+<p>The assignment in the class definition is not doing what you think it is doing, and when <code>hit</code> gets invoked it can't add to <code>nil</code>.<br />
+If you now ask what happened to <code>@game_score</code>?, well, always remember Class is an object and Object is a class.<br />
+It's way cool the way Ruby classes have this Zen-like "real" existence. Ruby doesn't precisely have named classes, rather, class names are references to objects of class <code>Class</code>. <strong>By assigning to <code>@game_score</code> outside of an instance method you created a class instance variable, an attribute of the class object <code>Bowling</code>, which is an instance of class <code>Class</code></strong>. These objects are not, in general, very useful. (See Chapter 1, The Ruby Way, Hal Fulton.)</p>
+<p>You can reach the @game_score class instance variable by doing this:</p>
+{% highlight ruby  %}
+class << Bowling
+  attr_accessor :game_score
+end
+
+Bowling.game_score #=> 0
+Bowling.game_score = 6 #=> 6
+{% endhighlight %}
+<p><strong>(A question for you: What is the difference between class variables and class instance variables?)</strong></p>
+<h2>Creating data structures in Ruby</h2>
+<p>I have committed a mistake myself in answering this question :P, however remember: If you don't try, you don't learn.</p>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/1571349/can-the-array-be-reinvented-in-ruby">Can the array be reinvented in Ruby?</a></p>
+<p><strong>The question text is</strong>:<br />
+This is just a hypothetical question, if you wouldn't have the <code>Array</code> and the <code>Hash</code> class, would there be any way of implementing an Array class in pure Ruby? How?</p>
+<p><strong>The answer is</strong>:<br />
+Yes we can:</p>
+{% highlight ruby  %}
+class MyArray
+  include Enumerable
+
+  def initialize
+    @size = 0
+  end
+
+  def <<(val)
+    instance_variable_set("@a#{@size}".to_sym, val)
+    @size += 1
+  end
+
+  def [](n)
+    instance_variable_get("@a#{n}")
+  end
+
+  def length
+    @size
+  end
+
+  def each
+    0.upto(@size - 1) { |n| yield self[n] }
+  end
+end
+
+a = MyArray.new
+a << 1
+a << 2
+p a.to_a     #=> [1,2]
+{% endhighlight %}
+<p>This works by creating instance variables <code>@a0</code>, <code>@a1</code>, etc. on the object to represent array indices 0, 1, etc. It has constant time length and index operations. The rest of the operations (remove, etc.) are a bit more effort to implement, but it's absolutely possible.</p>
+<p>Note that the constant time property for the index operation depends on the underlying Ruby runtime using an appropriate data structure for instance variables.</p>
+<h2>Hash#reject</h2>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/1531047/update-attributes-unless-blank">Update attributes unless blank?</a></p>
+<p><strong>The question text is</strong>:<br />
+I have an existing Project record, and I'm importing a CSV file to update the associated Project attributes. However, often the CSV will contain blank fields and I don't want to overright exisiting attributes if the related CSV field is blank.</p>
+<p>Something like this:</p>
+{% highlight ruby  %}
+project.update_attributes(:name => row.field('project_name') unless row.field('project_name').blank?,                                                                         
+                          :owner => row.field('project_owner') unless row.field('project_owner').blank?,
+                          :due_date => row.field('project_due_date') unless row.field('project_due_date').blank?)
+{% endhighlight %}
+<p><strong>The answer is:</strong></p>
+{% highlight ruby  %}
+project.update_attributes({:name => row.field('project_name'),                                                                         
+                          :owner => row.field('project_owner'),
+                          :due_date => row.field('project_due_date')}.reject{|k,v| v.blank?})
+{% endhighlight %}
+<h2>Ruby 'private' behavior</h2>
+<p>The key point here to remember is that <code>private</code>, <code>protected</code> and <code>pulbic</code> are just other methods defined in Ruby <a href="http://www.ruby-doc.org/core/classes/Module.html">Module</a> class.</p>
+<p><strong>The question title is</strong>: <a href="http://stackoverflow.com/questions/1565269/are-there-good-reasons-for-private-to-work-the-way-it-does-in-ruby">Are there good reasons for ‘private’ to work the way it does in Ruby?</a></p>
+<p><strong>The question text is</strong>:<br />
+It took me a while to understand how private methods work in Ruby, and it really strikes me as being very awkward. Does anyone know if there are good reasons for private methods to be handled the way they are? Is it just historic reasons? Or implementation reasons? Or are there good solid logical reasons (ie. semantic)?</p>
+<p>For example:</p>
+{% highlight ruby  %}
+class Person
+  private
+  attr_reader :weight
+end
+
+class Spy < Person
+ private
+  attr_accessor :code
+ public
+  def test
+    code          #(1) OK: you can call a private method in self
+    Spy.new.code  #(2) ERROR: cannot call a private method on any other object
+    self.code     #(3) ERROR!!! cannot call a private method explicitly on 'self'
+    code="xyz"    #(4) Ok, it runs, but it actually creates a local variable!!!
+    self.code="z" #(5) OK! This is the only case where explicit 'self' is ok
+    weight        #(6) OK! You can call a private method defined in a base class
+  end
+end
+{% endhighlight %}
+<ul>
+<li>Ruby's behaviour on lines (1), (2) and (5) seems reasonable.</li>
+<li>The fact that (6) is ok is a bit strange, especially coming from Java and C++. Any good reason for this?</li>
+<li>I really do not understand why (3) fails ! An explanation, anyone?</li>
+<li>The problem on line (4) looks like an ambiguity in the grammar, which has nothing to do with 'private'.</li>
+<p>Any ideas?
+</ul>
+<p><strong>The  answer is:</strong></p>
+<p>You might find it helpful to read ruby's <a href="http://www.ruby-doc.org/docs/ProgrammingRuby/html/tut%5Fclasses.html">definition of public, private and protected</a> <strong>(Skip to Access Control)<br />
+</strong><br />
+Ruby's private is analogous to Java's protected. There is no Ruby equivalent of Java's private. But there are ways to fake it.</p>
+<p>Private is defined as methods/variables that can <strong>only</strong> be called implicitly. This is why statements 2 and 3 fail. In other words, private limits methods/variables to the context of a class or subclass in which they are defined. Inheritance passes private methods to the subclasses and can therefore be accessed with an implicit self. (Explaining why statement 6 works.)</p>
+<p>I think you're looking for something closer to protected. Which behaves similarly to Java accessors that are not given a visibility (eg: public, private, protected) By changing the private in Spy to protected all 6 of your statements work. Protected methods can be called by any instance of the defining class or their subclasses. Either explicitly or implicitly called on self are valid statements for protected methods so long as the caller is either the class of the object responding to the call, or inherits from it.</p>
+{% highlight ruby  %}
+class Person
+  private
+  attr_reader :weight
+end
+
+class Spy < Person
+ protected
+  attr_accessor :code
+ public
+  def test
+    code          #(1) OK: you can call a private method in self
+    Spy.new.code  #(2) OK: Calling protected method on another instance from same class family or a descendant.
+    self.code     #(3) OK: Calling protected method on with explicit self is allowed with protected
+    code="xyz"    #(4) Ok, it runs, but it actually creates a local variable!!!
+    self.code="z" #(5) OK! This is the only case where explicit 'self' is ok
+    weight        #(6) OK! You can call a private method defined in a base class
+  end
+end
+
+s = Spy.new
+s.test # succeeds
+s.code #(7) Error: Calling protected method outside of the class or its descendants.
+{% endhighlight %}
+<p>As for statement 4. You are correct in assuming this is to avoid ambiguity. It's more a safeguard to the potential harm of ruby's dynamic nature. It ensures that you cannot override accessors by opening up the class again later. A situation that can arise, for example by eval'ing tainted code.</p>
+<p>I can only speculate on he design decisions that led to these behaviours. For most of it I feel it comes down to the dynamic nature of the language.</p>
+<p>P.S. If you really want to give things the java definition of private. Only available to the class in which it's defined, not even subclasses. You could add an self.inherited method to your classes to remove references to the methods you want to limit access to.</p>
+<p>Making the weight attribute inaccessible from subclasses:</p>
+{% highlight ruby  %}
+class Person
+  private
+  attr_reader :weight
+
+  def initialize
+    @weight = 5
+  end
+
+  def self.inherited(subclass)
+    subclass.send :undef_method, :weight
+  end
+end
+
+class Spy < Person
+ private
+  attr_accessor :code
+ public
+  def test
+     weight       
+  end
+end
+
+Person.new.send(:weight)  # => 5
+Spy.new.send(:weight)  #=> Unhelpful undefined method error
+{% endhighlight %}
+<p>It may make more sense to replace the undef_method call to something like this:</p>
+{% highlight ruby  %}
+  def self.inherited(subclass)
+    subclass.class_eval %{
+      def weight 
+        raise "Private method called from subclass. Access Denied"
+      end
+     }
+  end
+{% endhighlight %}
+<p>Which provides a much more helpful error and the same functionality.</p>
+<p>The send is necessary to get around calling private methods for other classes. Only used to prove that things are actually working.</p>
+<p>Which in hindsight, makes private and protected useless. If you're really serious about protecting your methods you will have to override send to block them. You could also make send private.</p>
+<p>It ends up being one of those "Damned if you do, damned if you don't" situations. There are legitimate uses of calling send from outside an object. And overriding send requires some tricky code to account for the variable number of arguments that can be sent to any method.</p>
+<p>That's an exercise for another time.</p>
+<p><strong>Suggestions/comments regarding the content of this series are welcome! Have your say!</strong></p>

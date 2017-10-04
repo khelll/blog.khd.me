@@ -1,0 +1,193 @@
+---
+layout: single
+title: Scala is my next choice
+date: 2009-07-12 03:39:45.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- Scala
+tags:
+- Functional Programming
+
+---
+<p>I have done Pascal, C, C++, Java, PHP, Ruby, Groovy and recently Scala, which I found it to be a unique language compared to anything else I have ever worked with. My journey with this language started after the Twitter's Ruby vs Scala <a href="http://topsecretproject.finitestatemachine.com/2009/04/the-great-twitter-ruby-vs-scala-war-debate/">debate</a>. Now and after few months of work with this language I really want to share you two ideas that are no secrets anymore:</p>
+<ul>
+<li>Scala Does Rock.</li>
+<li>I do believe this language should be taught in CS colleges and institutes.</li>
+</ul>
+<p>I'm going to justify my opinion during this article, just before doing so I have few notes I feel like I have to address:</p>
+<ul>
+<li>This article is not to compare languages, it's to address why you should learn Scala.</li>
+<li>Scala has 2 implementations right now, one that runs on the <a href="http://en.wikipedia.org/wiki/Java_Virtual_Machine">JVM</a>, and one that runs on the <a href="http://en.wikipedia.org/wiki/Common_Language_Runtime">CLR</a>. However the JVM one  is more mature, and I believe it's better to stick to the <a href="http://www.infoq.com/interviews/Lift-Scala-David-Pollak">advice</a> of David Pollack(Lift framework creator) to use <code>F#</code> if you want to work with <code>.Net</code> framework. However I will stick to JVM implementation in this article.</li>
+<li>I'm a Rubiest, and I still like Ruby cause it's the best dynamic language ever, but I like Scala also because it has some features that are so powerful for other work domains.</li>
+</ul>
+<p>Now, let's dive into the some reasons that's makes Scala my next language of choice:</p>
+<h2>A hyper language</h2>
+<p>Scala is a hyper language that enables you to code in <a href="http://en.wikipedia.org/wiki/Imperative_programming">imperative</a> and <a href="http://en.wikipedia.org/wiki/Functional_programming">functional</a> paradigms, so you can code with the normal imperative style just like we do in C, Java, PHP and many other languages, or you can code in a functional style like we do in Lisp for example, or you can mix both, just like we do in Ruby or Groovy.</p>
+<p>However, one distinct to Ruby and Groovy when talking about the functional paradigm, is that Scala almost supports all known features of functional languages, like Pattern matching, Lazy initialization, Partial Functions, Immutability, etc...</p>
+<p>That's said, it's important to address the fact that the power of Scala comes from it's support for the functional paradigm, which makes the language a high-level one. A high-level language makes you focus on 'what' to do rather than 'how' to do.</p>
+<p>Look at this Java example:</p>
+{% highlight java  %}
+int[] x = {1,2,3,4,5,6};
+ArrayList<integer> res = new ArrayList<integer>();
+for (int v : x) {
+  if (v % 2 == 1) res.add(new Integer(v));
+}
+</integer></integer>{% endhighlight %}
+<p>If you focus on the previous example, you will notice that the 'what' part of what I want to do (Filtering odd values) comes on the 4th line, and the other lines are just the 'how' part of it(result var initialization and a loop), thus if I want to write another filter for even numbers, It will take me another 5 lines to do the same, while in a high-level languages like Scala, you will need to express the 'what' part only:</p>
+{% highlight scala  %}
+val x = Array(1,2,3,4,5,6)
+val res = x filter ( _ % 2 == 1 ) //filtering odd numbers
+val res2 = x filter ( _ % 2 == 0 ) //filtering even numbers
+{% endhighlight %}
+<p>Notice how the previous code snippet is more readable and more concise than the Java equivalent.</p>
+<h2>Efficient</h2>
+<p>Scala is an efficient language, actually due to the <a href="http://stronglytypedblog.blogspot.com/2009/07/java-vs-Scala-vs-groovy-performance.html">latest benchmarks</a> Scala is almost as fast as Java. The JVM implementation of Scala compiles down to <a href="http://en.wikipedia.org/wiki/Bytecode">bytecode</a>, but during so, the code passes through optimization phaze. An optimization example is the <a href="http://en.wikipedia.org/wiki/Tail_recursion">tail recursion optimization</a>, to help you stick to the functional paradigm without sacrificing the performance. Another example is the optimization done to convert Scala value type objects to Java primitive types.</p>
+<h2> Scalable </h2>
+<p>The name of Scala language comes form the word 'Scalable', meaning that this language grows with the demand of its users. <strong>So basically you can add new type and control structures</strong>. For example I want to add a simple 'loop' control structure:</p>
+{% highlight scala  %}
+// simple implementation
+def loop(range: Range)(op: Int=> Unit) {
+     range foreach (op)                       
+}
+
+loop(1 to 5){println} // 1 2 3 4 5
+loop(1 to 5){x => if (x % 2 == 0) println(x)} // 2 4
+{% endhighlight %}
+<p>A more comprehensive example is the <a href="http://www.Scala-lang.org/docu/files/api/Scala/actors/Actor.html">Actor lib</a>, which is added as an extension to the language, we will talk about it later on.</p>
+<p>However what makes Scala Scalable is two related things: being pure object oriented and being functional.</p>
+<h3>Object Oriented</h3>
+<ul>
+<li>Everything in Scala is an object(except for the objects' methods), so there is no need to differentiate between primitive or reference types, this is called: <strong>Uniform Object Model</strong>. But as I mentioned earlier during the optimization process, value type objects are converted to Java primitive types, so don't be worried about the performance.<br />
+There are also singleton objects to group class methods inside them.</li>
+<li>All operations are method calls, <code>+ - * ! /</code> all are methods, so there no need for operator overloading.   </li>
+<li>A great fine-grained access control, where you can control access for certain methods for certain packages also.</li>
+<li>Scala has <code>traits</code>, similar to <code>mixins</code> in Ruby, which are like <code>interfaces</code> in Java but have some of their methods implemented, thus you can have rich wrappers and interfaces out of the box.</li>
+</ul>
+<h3>Functional</h3>
+<p>A functional language has many characteristics, however what we care for in our Scalability context is 2 facts:</p>
+<h4>Functions are first-class values</h4>
+<p>Which means that you can pass them as values and return them as values as well. This leads to concise readable code just like the filtering examples mentioned above.</p>
+<h4>Pure functions</h4>
+<p>Scala encourages pure functions that have no side effects, meaning: when you have the same input, you will always have the same output. This will result in safer and easier to test code.<br />
+But how does Scala encourages pure functions? By <strong>immutability</strong>: Favoring fixed references(like final in java or constants in other languages) and having immutable data structures that once created can't be modified.</p>
+<p>Immutability is the safe guard to have pure functions, but it's not the only way. You still can write safe code without immutability. That's why Scala doesn't force immutability but it encourages it. Eventually you will find that many data structures in Scala have 2 implementations, one is mutable and the other is immutable, immutable data structures are imported by default.</p>
+<p>Some concerns regarding performance might arise when talking about immutability, and while these concerns are valid in this context, it turned out that things are somehow reversed when it comes to Scala. Immutable data structures tend to be more efficient than mutable ones. One reason for that is the existence of a robust garbage collector like the one of JVM. You can find more information about the efficiency of immutable data structures in Scala in this <a href="http://www.codecommit.com/blog/Scala/Scala-collections-for-the-easily-bored-part-1">blog post</a>.</p>
+<h2>Better concurrency model</h2>
+<p>When it comes to threading, Scala supports the traditional <code>shared data</code> model. However and after long experiments with this model, many people found it to be so hard to to implement and test concurrent code written using this model. You will always have to consider deadlocks and race conditions. Thus Scala suggests another concurrency model called <a href="http://www.Scala-lang.org/node/242">Actors</a>, where an actor <strong>sends and receives asynchronous messages in it's inbox instead of sharing data</strong>. This is called: <code>shared nothing</code> model. Once you stop thinking about shared data, you relief yourself from the headache of thinking of code synchronization and deadlocks problems.</p>
+<p>Together the immutability nature of the sent messages and the serial processing of messages in the actor, leads to easier concurrency support.<br />
+There are 2 articles(<a href="http://www.ibm.com/developerworks/java/library/j-Scala02049.html?S_TACT=105AGX02&S_CMP=EDU">1</a>,<a href="http://www.ibm.com/developerworks/java/library/j-Scala04109.html?S_TACT=105AGX02&S_CMP=EDU">2</a>) on the IBM developerWorks website that cover Scala concurrency deeply. Please refer back to them to have a better idea about this topic.</p>
+<p>Before I move to the next point I need to mention the fact that some people consider the use of <code>Actors</code> as an evolutionary progress in programming languages. As Java came and relieved programmers from the headache of pointers and memory management, Scala came to relief programmers from thinking all the time of code synchronization and the problems raised by shared data model.</p>
+<h2>Statically typed</h2>
+<p>When i wanted to cover this point, I found myself trying to weigh both the pros and cons of a statically typed language. Actually there is an endless debate regarding this topic but I tried to sum things up to two points that I found most people talking about:</p>
+<h3>Code written in statically typed languages is more robust</h3>
+<p>It's true that with the existence of TDD most of the talk about dynamically typed systems and robust code starts to lose its value, but one fact still exists: in dynamically typed languages you write more tests to check types, while in statically typed ones, you leave things out for the compiler. Also some people argue that with a statically typed language you have a better self documenting code.</p>
+<h3>Code written in statically typed languages is so strict and verbose</h3>
+<p>Fans(just like me) of dynamically typed languages argue that they can produce more dynamic code structures through duck typing. Also they complain about the verbosity introduced with statically typed languages.</p>
+<p>You can read more about static versus dynamic typing <a href="http://www.pathf.com/blogs/2009/04/static-typing-and-the-paranoid-style-of-programming/">here</a>.</p>
+<p>Scala as a statically typed language will gain the first point, but how about the second one?<br />
+Scala has a<strong> flexible</strong> type system, and may be the best of it's type. So in many cases this system will be able to infer the type in case you didn't specify it.<br />
+For example you can do this:</p>
+{% highlight scala  %}
+val list: List[String] = List("one", "two", "three")
+//list: List[String] = List(one, two, three)
+
+val s: String = "Hello World!"
+//s: java.lang.String = hello world!
+{% endhighlight %}
+<p>But you can do this also:</p>
+{% highlight scala  %}
+val list = List("one", "two", "three")
+//list: List[String] = List(one, two, three)
+
+val s = "Hello World!"
+//s: java.lang.String = hello world!
+{% endhighlight %}
+<p>Well, that's cool as it solves the verbosity problem somehow. But what about things like duck typing?<br />
+Again: Scala's type system has some flexibility that enables you to do things like:</p>
+<p>&lt;</p>
+<p>pre lang="Scala"><br />
+def eat[T <: Animal](a: T) // whatever</p>
+<p>Where we define the Type <code>T</code> to be a sub type of <code>Animal</code>. It can be more flexible even:</p>
+<p>&lt;</p>
+<p>pre lang="Scala"><br />
+def eat[T <: {def eat(): Unit}](a: T) // whatever</p>
+<p>Where we define the type <code>T</code> to be a type that has the method <code>eat.</code><br />
+Actually Scala's type system is so rich, you can find more about that <a href="http://www.artima.com/Scalazine/articles/Scalas_type_system.html">here</a>.</p>
+<h2>Pattern matching</h2>
+<p>I have to admit that I hesitated a lot to write about this feature, actually I didn't want to cover functional features of Scala, but after I read <a href="http://blog.rubybestpractices.com/posts/gregory/008-decorator-delegator-disco.html">this</a> specific post regarding <code>switch</code> use with objects, I thought it's good to talk about this feature.<br />
+So basically and taken from this <a href="http://www.artima.com/scalazine/articles/pattern_matching.html">post </a>:</p>
+<blockquote><p>
+So what does pattern matching do? It lets you match a value against several cases, sort of like a switch statement in Java. But instead of just matching numbers, which is what switch statements do, you match what are essentially the creation forms of objects. </p></blockquote>
+<p>And the following example:</p>
+{% highlight scala  %}
+x match {
+  case Address(Name(first, last), street, city, state, zip) => println(last + ", " + zip)
+  case _ => println("not an address") // the default case
+}
+{% endhighlight %}
+<p>In the first case, the pattern Name(first, last) is nested inside the pattern Address(...). The last value, which was passed to the Name constructor, is "extracted" and therefore usable in the expression to the right of the arrow.</p>
+<p>Then</p>
+<blockquote><p><strong>The purpose of pattern matching</strong></p>
+<p>So why do you need pattern matching? We all have complicated data. If we adhere to a strict object-oriented style, then we don't want to look inside these trees of data. Instead, we want to call methods, and let the methods do the right thing. If we have the ability to do that, we don't need pattern matching so much, because the methods do what we need. But there are many situations where the objects don't have the methods we need, and we can't (or don't want to) add new methods to the objects. </p></blockquote>
+<p>So, Pattern matching is considered a valid way of extensibility, and it offers a great solution to this problem apart from the verbosity that comes with <a href="http://en.wikipedia.org/wiki/Visitor_pattern">Visitor design pattern</a>.</p>
+<p>Anyway, it's highly recommended that you read the "<em>Two directions of extensibility</em>" in the previous mentioned article.</p>
+<h2>Easy DSLs</h2>
+<p>Scala is very good for coding <a href="http://en.wikipedia.org/wiki/Domain-specific_language">DSLs</a>. Actually Scala is suitable for both Internal and external DSLs. You can find in this <a href="http://www.artima.com/weblogs/viewpost.jsp?thread=251945">article</a> a little comparison of features between Ruby and Scala for writing internal DSLs. Check this cool post on internal DSLs using Scala: <a href=" http://gabrielsw.blogspot.com/2009/06/boolean-algebra-internal-dsl-in-scala.html">Boolean Algebra Internal DSL in Scala (aka fun with Unicode names )</a>.<br />
+Also when it comes to External DSLs, Scala should be your first choice, and the reason behind that is the <a href="http://www.Scala-lang.org/docu/files/api/Scala/util/parsing/combinator/Parsers.html">parser combinator</a> lib, that makes writing compilers for new languages is really cool. You'd better follow this cool <a href="http://www.codecommit.com/blog/Scala/the-magic-behind-parser-combinators">post</a> to get a better idea about what Scala can do.</p>
+<h2>Interoperable with Java code</h2>
+<p>The JVM implementation of Scala have seamless integration with Java platform, actually many Scala types compiles down to Java types, so you can use Java libs safely. Also you can make some work between JVM languages like <a href="http://www.jRuby.org">JRuby</a>, <a href="http://groovy.codehaus.org/"> Groovy</a>, <a href="http://clojure.org/">Clojure</a> and others.<br />
+<a href="http://www.codecommit.com/blog/java/interop-between-java-and-scala">Here</a> is a good post with examples.</p>
+<h2>Educational language</h2>
+<p>I had 2 habits that I kept practicing during the learning curve of Scala :</p>
+<ul>
+<li>Going to Wikipedia every while to read more about the new technical terms I passed by; terms like <a href="http://en.wikipedia.org/wiki/First-class_function">Function literals</a>, <a href="http://en.wikipedia.org/wiki/Referential_transparency_%28computer_science%29">Referentially transparent</a>, <a href="http://en.wikipedia.org/wiki/Partial_function">Partial functions</a>, <a href="http://en.wikipedia.org/wiki/Currying">Currying</a> and so many other terms.</li>
+<li>Revising my knowledge in other languages to check if these terms are implemented somehow.</li>
+</ul>
+<p>Both of these two habits made me gain more knowledge and increased the quality of my code through some good practices like: writing pure methods that has no side effect and focusing on the 'what' part of my code, leaving the 'how' one to language abstractions..</p>
+<h2>Team</h2>
+<p>Scala was designed by <a href="http://people.epfl.ch/martin.odersky">Martin Odersky</a> the man running the Programming Methods Laboratory (LAMP) group at Swiss Federal Institute of Technology in Lausanne (EPFL). Odersky was approached by Sun to write the Java 1.1 compiler, he was the lead developer of javac from Java 1.1 through Java 1.4. Also he is the guy behind Java Generics.<br />
+Scala is being maintained by Odersky and his team at EPFL. However there are other talented folks who helped shaping Scala over years, you can check the full list <a href="http://www.Scala-lang.org/node/89">here</a>.</p>
+<h2>Roots</h2>
+<p>Scala was inspired by many languages:</p>
+<ul>
+<li>Most of the syntax is coming from Java and C#.</li>
+<li>    Other elements where adopted from Java such as: basic types, class libraries, and its execution model.</li>
+<li>Its uniform object model was pioneered by Smalltalk.</li>
+<li>Its idea of universal nesting is also present in Algol, Simula, and, more recently in Beta and gbeta.</li>
+<li>Its uniform access principle for method invocation and field selection comes from Eiffel.</li>
+<li>Its approach to functional programming is quite similar in spirit to the ML family of languages, which has SML, OCaml, and F# as prominent members.</li>
+<li>Many higher-order functions in Scalaâ€™s standard library are also present in ML or Haskell. </li>
+<li>Scalaâ€™s implicit parameters were motivated by Haskellâ€™s type classes. Scalaâ€™s actor-based concurrency library was heavily inspired by Erlang.</li>
+<li>The specific idea of treating an infix operator as a function and permitting a function literal (or block) as a parameter, which enables libraries to define control structures can be traced back to Iswim and Smalltalk.</li>
+</ul>
+<h2>Experts' Opinions</h2>
+<p>This <a href="http://www.infoq.com/news/2009/07/scala-replace-java">article</a> is a very good one showing some for experts' opinions regarding Scala language. Actually it has some surprises like James Strachan's(creator of Groovy language) statement:</p>
+<blockquote><p>I can honestly say if someone had shown me the Programming in Scala book by Martin Odersky, Lex Spoon & Bill Venners back in 2003 I'd probably have never created Groovy </p></blockquote>
+<p>Also I have found these interviews to be very useful:</p>
+<ul>
+<li><a href="http://on-ruby.blogspot.com/2009/03/beginning-scala-author-interview-with.html">Beginning Scala -- Author Interview with David Pollak</a></li>
+<li>  <a href="http://on-ruby.blogspot.com/2009/03/dean-wampler-and-alex-payne-author.html"> Dean Wampler and Alex Payne: Author Interview</a></li>
+<li>  <a href="http://on-ruby.blogspot.com/2009/03/author-interview-venkat-subramaniam.html">Author Interview: Venkat Subramaniam</a></li>
+</ul>
+<hr />
+<p><strong>At the end of this point I like to sum things up:</strong><br />
+I like Scala because it's efficient, educational, has better concurrency model, and very good for writing DSLs.<br />
+<strong>I also want to share another secret with you:</strong><br />
+ I'm planning to write a book on Scala language, I have an idea at mind and would like to coauthor with any guy from the Scala camp, please ping me if you have the same attention as mine.</p>
+<hr />
+<h2>Real World Examples</h2>
+<ul>
+<li><a href="http://www.artima.com/scalazine/articles/twitter_on_scala.html">Twitter</a></li>
+<li> <a href="http://liftweb.net/">Lift</a> framework.</li>
+<li><a href="http://www.scala-lang.org/node/1658">Many other</a> examples</li>
+</ul>
+<h2>Resources</h2>
+<ul>
+<li><a href="http://www.artima.com/shop/programming_in_scala">Programming in Scala</a> book.</li>
+<li><a href="http://www.apress.com/book/view/1430219890">Beginning Scala</a> book.</li>
+<li><a href="http://www.scala-lang.org/node/198">Scala reference manuals </a> page, contains very useful free PDFs </li>
+<li><a href="https://blog.udemy.com/scala-tutorial-getting-started-with-scala/">Scala Tutorial: Getting Started with Scala</a> by udemy.</li>
+<li><a href="http://www.ibm.com/developerworks/views/java/libraryview.jsp?search_by=scala+neward">Scala series</a> on IBM developerWorks website.</li>
+</ul>

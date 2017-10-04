@@ -1,0 +1,49 @@
+---
+layout: single
+title: Changing database encoding from latin1 to UTF8
+date: 2008-12-05 12:59:31.000000000 -05:00
+type: post
+published: true
+status: publish
+categories:
+- mysql
+tags:
+- arabic
+- mysql
+- utf8
+---
+<p>Now a days, <a href="http://en.wikipedia.org/wiki/UTF-8">UTF-8</a> is the most used data encoding format, and the fact that your database is not using UTF8 encoding is really annoying, specially additionally when it comes to integrating different systems, that has no one unified encoding format.<br />
+So if you think it's time to change your data encoding to utf8 format, then here what this post is all about.<br />
+I'll list here the steps to do so, i just have to clarify that the main data encoding here is windows-1256 (which is the main Arabic encoding used in web applications), but it's saved in latin1 encoding in the database (mydata ->windows-1256 -> latin1) ,also note that i'm  using Mysql database.<br />
+Here are the steps:</p>
+<ol>
+<li>Export (only) the schema of the db,without "set Names" phrase in the outputted sql file, this will bring you back the data in the original encoding (windows-1256)
+{% highlight bash  %}mysqldump --default-character-set=latin1 --skip-set-charset -d -uusername -ppassword db_name > db_name_schema.sql{% endhighlight %}
+</li>
+<li>Export the data of the db without "set Names" phrase in the outputted sql file, this will bring you back the data in the original encoding (windows-1256):
+{% highlight bash  %}mysqldump --default-character-set=latin1 --skip-set-charset -t -uusername -ppassword  db_name > db_name_data.sql{% endhighlight %}
+</li>
+<li>Change the encoding of both files from arabic to utf8 -check the notes if you r using windows
+{% highlight bash  %}iconv -f windows-1256 -t utf8 db_name_schema.sql > db_name_schema_utf8.sql
+iconv -f windows-1256 -t utf8 db_name_data.sql > db_name_data_utf8.sql{% endhighlight %}
+</li>
+<li> Open the file 'db_name_schema.sql' with any editor and replace each "DEFAULT CHARSET=latin1" phrase with "DEFAULT CHARSET=utf8" one
+</li>
+<li>Make a new db ,encoded in utf8:
+{% highlight bash  %} mysql -uusername -ppassword -e 'CREATE DATABASE new_db DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci'{% endhighlight %}
+</li>
+<li>Import the schema and data in utf8 encoding:
+{% highlight bash  %}mysql --default-character-set=utf8 -uusername -ppassword new_db < db_name_schema_utf8.sql
+mysql --default-character-set=utf8  -uusername -ppassword new_db < db_name_data_utf8.sql{% endhighlight %}
+</li>
+</ol>
+<p><strong> notes</strong></p>
+<ul>
+<li class="level1">
+<div class="li">If you are wondering why to separate schema from data upon exporting , then the answer is that the operation of replacing "DEFAULT CHARSET=latin1" phrase with "DEFAULT CHARSET=utf8" one , is taking place only on schema files, so it's recommended to separate them so that you dont stuck when loading the big data files.</div>
+</li>
+<li class="level1">
+<div class="li">If you are a windows user and can't use iconv , then u can use any editor to do the job for u, try scite or note++ or even dreamweaver</div>
+</li>
+</ul>
+<p>enjoy!!!</p>

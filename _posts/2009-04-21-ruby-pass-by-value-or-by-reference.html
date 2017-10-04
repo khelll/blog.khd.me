@@ -1,0 +1,56 @@
+---
+layout: single
+title: Ruby, pass by value or by reference?
+date: 2009-04-21 01:49:57.000000000 -04:00
+type: post
+published: true
+status: publish
+categories:
+- Ruby
+tags:
+- pass-by-refrence
+- pass-by-value
+
+---
+<p>It's a basic question that I myself had a problem with when i started using Ruby: Does Ruby pass by value or by reference?<br />
+Well, if you want a direct answer, then: Ruby passes by value. It's a similar behavior of what Java does.</p>
+<p>Let's prove it via examples:<br />
+<strong>Update:</strong>  this example was passing integers, and it turned out that even everything in ruby is an object, but immedaite values are passed directly by their values, so i changed this example to let it pass strings instead.</p>
+<p>Let's pass an argument to a method and check what goes on:</p>
+{% highlight ruby  %}
+irb(main):003:0> def change(x); x = '10'; end
+=> nil
+irb(main):004:0> y = '3'; puts change(y) ,  y
+'10'
+'3'
+=> nil
+{% endhighlight %}
+<p>As you see, we defined a method 'change' that takes a parameter 'x', changes it value and then returns it back. Then we invoked that method on the argument 'y' which had the value '3', and kept having the same value after the method invocation.<br />
+This simple example proves that the argument is not passed by reference, otherwise the value of 'y' would rather changed to '10' after the method invocation.</p>
+<p>Now let's take another example:</p>
+{% highlight ruby  %}
+irb(main):005:0> def another_change(x); x[0] = 'f'; x; end
+=> nil
+irb(main):006:0> s = "hello"; puts another_change(s) , s
+fello
+fello
+=> nil
+{% endhighlight %}
+<p>In this example, the passed argument value 'hello' has changed to 'fello', and thus it proves that the argument is not passed by value, otherwise the value of 's' would kept having the same value 'hello'.</p>
+<p>Thus it's not by value, neither by reference, then what is it? </p>
+<p>As you know, everything in Ruby is an object, and thus, doing:</p>
+{% highlight ruby  %}
+value = "smthin"
+{% endhighlight %}
+<p>means: assign a <strong>reference</strong>(a place in memory that points to referenced value. In other words, it's a place that holds the memory address of the referenced value) of the string 'somthin' to the variable named 'val', and normally when working with the variable 'val', it means we are working on it's referenced object 'smthing'. </p>
+<p>But when invoking a method:</p>
+{% highlight ruby  %}
+Foo(val)
+{% endhighlight %}
+<p>Things change a bit, as Ruby passes <strong>a copy</strong> of the 'val' <strong>reference itself</strong>(which is the memory address of the referenced object), not it's referenced object, to the method Foo, and that copy will still reference the same object 'smthing' as the variable 'val' does.<br />
+This is called: Pass by Value, <strong>a copy of a reference</strong> to an object is passed, and so, not the referenced object itself is passed, neither the argument itself.<br />
+Then Ruby passes by value. Some ppl like to call it "pass by reference value", but that's not standard afaik.</p>
+<p>That explains what goes in both examples, as in the first example the value of the argument 'y' didn't change due to the fact that we are not passing the reference 'y' itself, instead a copy of it, and thus, when its copy referenced another object(via assignment operator), the original variable 'y' kept referencing it's object, the object with value '3' in our case. As for the second example, the argument 's' changed due to the fact that its passed copy is still referencing the same object 'hello', but the operator [] changed the referenced object value, and thus got a new value 'fello'.</p>
+<p>I hope the idea is clear now, if not, please don't hesitate to comment.</p>
+<p><strong>Update:</strong><br />
+I have blogged a <a href="/2009/04/22/c-passes-by-reference-java-and-ruby-dont">new article</a> explaining passing by reference and value in 3 languages c++, java and ruby </p>
